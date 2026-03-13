@@ -404,8 +404,8 @@ volumes:
 ### GitHub Actions
 Workflow didefinisikan di `.github/workflows/deployment.yml`. 
 Setiap push ke `main` atau `development` akan mentrigger:
-1. **Backend CI**: Setup Go, install deps, dan run build.
-2. **Frontend CI**: Setup Node, install deps, run lint (ESLint), dan run build.
+1. **Backend**: Setup Go, install deps, dan run build.
+2. **Frontend**: Setup Node, install deps, run lint (ESLint), dan run build.
 
 ### local Development Security
 Menggunakan **Husky** dan **lint-staged** di sisi Frontend untuk merapikan kode (Prettier) dan mengecek error (ESLint) sebelum commit diizinkan.

@@ -1,16 +1,17 @@
 package main
 
 import (
-"flag"
-"log"
-"net/http"
-"os"
+	"flag"
+	"log"
+	"net/http"
+	"os"
 
-"github.com/gin-gonic/gin"
-"github.com/joho/godotenv"
-"github.com/petrushandika/one-log/internal/domain"
-"github.com/petrushandika/one-log/internal/middleware"
-"github.com/petrushandika/one-log/pkg/database"
+	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
+	"github.com/petrushandika/one-log/internal/domain"
+	"github.com/petrushandika/one-log/internal/middleware"
+	"github.com/petrushandika/one-log/pkg/database"
+	"github.com/petrushandika/one-log/pkg/utils"
 )
 
 func main() {
@@ -37,6 +38,11 @@ func main() {
 		port = "8080"
 	}
 
+	// Set Gin Mode
+	if os.Getenv("GIN_MODE") == "release" {
+		gin.SetMode(gin.ReleaseMode)
+	}
+
 	r := gin.Default()
 
 	// Apply CORS Middleware (Allow All)
@@ -44,28 +50,27 @@ func main() {
 
 	// Health Check
 	r.GET("/health", func(c *gin.Context) {
-c.JSON(http.StatusOK, gin.H{
-"status": "healthy",
-"app":    "ULAM API",
-})
-})
+		utils.Success(c, http.StatusOK, "System is healthy", gin.H{
+			"app": "ULAM API",
+		})
+	})
 
-	// Example Ingest with Validation
+	// Example Ingest with Structured Validation
 	r.POST("/api/ingest", func(c *gin.Context) {
-var req domain.IngestLogRequest
-if err := c.ShouldBindJSON(&req); err != nil {
-			c.JSON(http.StatusUnprocessableEntity, gin.H{
-"error":   "Validation failed",
-"details": err.Error(),
+		var req domain.IngestLogRequest
+		if err := c.ShouldBindJSON(&req); err != nil {
+			// Extract specific validation errors would be better in a separate helper,
+			// for now we send the raw bind error formatted correctly.
+			utils.Error(c, http.StatusUnprocessableEntity, "Validation failed", []utils.ErrorDetail{
+				{Field: "request_body", Message: err.Error()},
 			})
 			return
 		}
 
 		// Logic to save to DB would go here
-		c.JSON(http.StatusAccepted, gin.H{
-"status":  "success",
-"message": "Log ingested successfully",
-})
+		utils.Success(c, http.StatusAccepted, "Log received successfully", gin.H{
+			"log_id": 12345, // Placeholder
+		})
 	})
 
 	log.Printf("Server starting on port %s", port)
