@@ -1,0 +1,92 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, development ]
+  pull_request:
+    branches: [ main, development ]
+
+jobs:
+  backend:
+    name: Backend CI
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: user
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: ulam_db_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26'
+          cache: true
+          cache-dependency-path: Backend/go.sum
+
+      - name: Verify Dependencies
+        run: |
+          cd Backend
+          go mod verify
+          go mod download
+
+      - name: Run Go Generate
+        run: |
+          cd Backend
+          go generate ./...
+
+      - name: Static Analysis (Vet)
+        run: |
+          cd Backend
+          go vet ./...
+
+      - name: Run Tests
+        env:
+          DATABASE_URL: postgres://user:password@localhost:5432/ulam_db_test?sslmode=disable
+        run: |
+          cd Backend
+          go test -v ./...
+
+      - name: Build Application
+        run: |
+          cd Backend
+          go build -v -o bin/api ./cmd/api
+
+  frontend:
+    name: Frontend CI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: Frontend/package-lock.json
+
+      - name: Install Dependencies
+        run: cd Frontend && npm install --legacy-peer-deps
+
+      - name: Linting
+        run: cd Frontend && npm run lint
+
+      - name: Type Check
+        run: cd Frontend && npm run build # Vite template typically runs tsc during build
+
+      - name: Security Audit
+        run: cd Frontend && npm audit --audit-level=high || true
+
+      - name: Build Production
+        run: cd Frontend && npm run build

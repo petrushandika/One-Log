@@ -450,9 +450,13 @@ Backend Dependencies:
 ├── gorm/datatypes            → JSONB support
 └── golang.org/x/crypto       → bcrypt hashing
 
-DevOps:
+DevOps & CI/CD:
 ├── Docker                    → Containerization
 ├── Docker Compose v2         → Local orchestration
+├── GitHub Actions            → CI/CD Workflow (deployment.yml)
+├── Husky                     → Git hooks (Pre-commit)
+├── Lint-staged               → Optimized linting
+├── ESLint & Prettier         → Code quality & formatting
 ├── postgres:17-alpine        → Database image
 ├── golang:1.26-alpine        → Build image
 └── nginx:alpine              → Frontend serving

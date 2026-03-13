@@ -396,3 +396,23 @@ volumes:
 | `GROQ_API_KEY` | Backend  | API Key dari Groq Console                |
 | `SERVER_PORT`  | Backend  | Default `8080`                           |
 | `VITE_API_URL` | Frontend | `https://api.ulam.your-domain.com`       |
+
+---
+
+## 9. CI/CD & DevOps
+
+### GitHub Actions
+Workflow didefinisikan di `.github/workflows/deployment.yml`. 
+Setiap push ke `main` atau `development` akan mentrigger:
+1. **Backend CI**: Setup Go, install deps, dan run build.
+2. **Frontend CI**: Setup Node, install deps, run lint (ESLint), dan run build.
+
+### local Development Security
+Menggunakan **Husky** dan **lint-staged** di sisi Frontend untuk merapikan kode (Prettier) dan mengecek error (ESLint) sebelum commit diizinkan.
+
+### Dockerization
+Sistem sepenuhnya bisa dijalankan dengan satu perintah:
+```bash
+docker-compose up -d --build
+```
+Terdiri dari 3 kontainer: `ulam-db`, `ulam-api`, dan `ulam-dashboard`.

@@ -56,7 +56,25 @@ cp .env.example .env
 # Fill in DATABASE_URL, JWT_SECRET, GROQ_API_KEY, and SMTP credentials
 ```
 
-### 3. Run with Docker
+### 🏃‍♂️ Quick Start (Method 1: Makefile - RECOMMENDED)
+We provide a `Makefile` for a clean and automated workflow:
+
+```bash
+# 1. Setup all dependencies (Go & NPM)
+make setup
+
+# 2. Run Database Migrations
+make migrate
+
+# 3. Build both Frontend & Backend
+make build
+
+# 4. Start Development Mode
+make dev
+```
+
+### 🏃‍♂️ Quick Start (Method 2: Docker)
+If you prefer Docker:
 ```bash
 docker-compose up -d --build
 ```

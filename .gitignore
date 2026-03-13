@@ -1,0 +1,14 @@
+# Workspace
+.gemini/
+.agents/
+/tmp/
+
+# Project
+node_modules/
+dist/
+Backend/bin/
+Frontend/dist/
+
+# Credentials
+.env
+**/.env
