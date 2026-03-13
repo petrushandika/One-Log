@@ -34,6 +34,7 @@ MVP berfokus pada **4 kapabilitas inti** yang memberikan nilai langsung tanpa ov
 | Request validation       | 🔲 Todo | Required fields check |
 | Async processing         | 🔲 Todo | Respond < 100ms       |
 | Background DB write      | 🔲 Todo | Via goroutine         |
+| PII Data Masking         | 🔲 Todo | Automatic sensor sensitive keys |
 
 **Minimal Payload yang Diterima:**
 
@@ -85,6 +86,8 @@ MVP berfokus pada **4 kapabilitas inti** yang memberikan nilai langsung tanpa ov
 | Trigger on ERROR/CRITICAL       | 🔲 Todo | Inside goroutine        |
 | Email HTML template             | 🔲 Todo | Source + message + link |
 | Throttling (5 menit/error type) | 🔲 Todo | In-memory map           |
+| Log Retention Worker            | 🔲 Todo | Auto-cleanup > 30 days  |
+| AI Insight Engine               | 🔲 Todo | Manual & Auto analysis via Groq API |
 
 ---
 
@@ -93,11 +96,9 @@ MVP berfokus pada **4 kapabilitas inti** yang memberikan nilai langsung tanpa ov
 | Feature                  | Reason Deferred                                |
 | ------------------------ | ---------------------------------------------- |
 | WebSocket real-time      | Kompleksitas tambahan, polling cukup untuk MVP |
-| Log retention automation | Bisa manual delete dulu                        |
 | CSV Export               | Tidak urgent                                   |
 | Slack/Telegram           | SMTP cukup untuk MVP                           |
 | Multi-admin / RBAC       | Single admin cukup                             |
-| AI Insight               | Post-MVP                                       |
 | Custom alert rules       | Hardcoded trigger cukup                        |
 
 ---

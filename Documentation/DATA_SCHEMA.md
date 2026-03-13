@@ -76,6 +76,7 @@ CREATE TABLE log_entries (
     message     TEXT         NOT NULL,
     stack_trace TEXT,
     context     JSONB,
+    ai_insight  JSONB,
     ip_address  VARCHAR(45),
     created_at  TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
@@ -99,6 +100,7 @@ type LogEntry struct {
     Message    string         `gorm:"type:text;not null"               json:"message"`
     StackTrace string         `gorm:"type:text"                        json:"stack_trace,omitempty"`
     Context    datatypes.JSON `gorm:"type:jsonb"                       json:"context,omitempty"`
+    AIInsight  datatypes.JSON `gorm:"type:jsonb"                       json:"ai_insight,omitempty"`
     IPAddress  string         `gorm:"type:varchar(45)"                 json:"ip_address,omitempty"`
     CreatedAt  time.Time      `gorm:"autoCreateTime"                   json:"created_at"`
 }
@@ -258,6 +260,46 @@ Digunakan untuk semua event autentikasi. Field `event_type` dan `auth_method` ad
 | `mfa_success`      | INFO                                |
 | `session_expired`  | INFO                                |
 | `suspicious_login` | ERROR                               |
+
+---
+
+### 🔑 User Permissions & Roles (Within Context)
+
+Meskipun sistem tidak membatasi struktur data, berikut adalah skema yang direkomendasikan untuk menyimpan informasi **Permission & Role**:
+
+```json
+{
+  "user_id": "usr_abc123",
+  "role": "editor",
+  "permissions": ["post:create", "post:edit", "post:delete"],
+  "department": "Content Team",
+  "organization_id": "org_456"
+}
+```
+
+Informasi ini dimasukkan ke dalam field `context` pada event `login_success` atau aktivitas yang membutuhkan otorisasi tinggi.
+
+---
+
+### 📱 Advanced Device & IP Tracking
+
+ULAM mendukung penelusuran perangkat secara mendalam melalui `context`:
+
+```json
+{
+  "device_id": "uuid-v4-client-side-id",
+  "device_name": "iPhone 15 Pro",
+  "is_rooted": false,
+  "app_version": "2.1.0",
+  "connection_type": "wifi",
+  "carrier": "Telkomsel",
+  "location": {
+    "lat": -6.1754,
+    "lng": 106.8272,
+    "accuracy": "low"
+  }
+}
+```
 
 ---
 

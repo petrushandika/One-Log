@@ -140,7 +140,23 @@ ULAM menangani sisanya: penyimpanan, searching, alerting, dan visualisasi.
 
 > **Catatan**: `source_id` tidak perlu dikirim oleh client karena sudah diketahui dari API key.
 
-### 6.3 Log Category & Level System
+### 6.3 Data Privacy & Security (PII Masking)
+
+Untuk menjaga keamanan data, ULAM menerapkan **PII (Personally Identifiable Information) Masking**:
+
+- **Automatic Masking**: Sistem akan mendeteksi dan mensensor (mengganti menjadi `***`) kata kunci sensitif dalam field `message` dan `context` seperti: `password`, `secret`, `api_key`, `access_token`, `auth_token`.
+- **Level**: PII Masking dilakukan di tingkat Backend sebelum data ditulis ke database (At-Rest Security).
+- **Custom Patterns**: Admin dapat menentukan regex tambahan untuk masking (misal: nomor kartu kredit).
+
+### 6.4 Error Grouping (Log Fingerprinting)
+
+Untuk menghindari "dashboard noise", ULAM mengimplementasikan **Error Grouping**:
+
+- **Mechanism**: Jika fitur ini aktif, sistem akan menghitung hash dari `source_id`, `category`, dan subset dari `message` (50 karakter pertama).
+- **Dashboard View**: Log yang identik akan dikelompokkan. User melihat jumlah kejadian (*occurrence count*) dan waktu terakhir muncul (*last seen*) di satu baris yang sama.
+- **Alert Suppression**: Email alert hanya dikirim untuk kejadian pertama dalam siklus cooldown (5 menit).
+
+### 6.5 Log Category & Level System
 
 **Categories:**
 
@@ -162,7 +178,7 @@ ULAM menangani sisanya: penyimpanan, searching, alerting, dan visualisasi.
 | `INFO`     | Informasi operasional normal                         | ❌       |
 | `DEBUG`    | Detail untuk debugging (opsional, di-filter di prod) | ❌       |
 
-### 6.4 Metadata Capture
+### 6.6 Metadata Capture
 
 Setiap log entry menangkap:
 
@@ -171,7 +187,7 @@ Setiap log entry menangkap:
 - **Application ID** dari API key lookup
 - **User-defined context** via JSONB field (bebas sesuai kebutuhan)
 
-### 6.5 Notification Engine
+### 6.7 Notification Engine
 
 | Spec           | Detail                                                            |
 | -------------- | ----------------------------------------------------------------- |
@@ -181,20 +197,35 @@ Setiap log entry menangkap:
 | **Template**   | HTML email: Nama App, Level, Message, Stack Trace, Link Dashboard |
 | **Timeout**    | SMTP call timeout 10 detik                                        |
 
-### 6.6 Admin Dashboard
+### 6.8 Admin Dashboard
 
 | Fitur                 | Deskripsi                                                                                |
 | --------------------- | ---------------------------------------------------------------------------------------- |
 | **Overview**          | Statistik agregat: total log per level, per aplikasi, dalam 24h/7d/30d                   |
 | **Log Table**         | Tabel dengan pagination, filter multi-kriteria, dan search                               |
 | **Log Detail**        | Tampilan lengkap: message, stack trace, formatted JSON context                           |
+| **AI Insight**        | Tombol "Analyze" untuk mendapatkan ringkasan error & solusi via **Groq API**             |
 | **Activity Monitor**  | Halaman khusus untuk melihat login events, auth method breakdown, dan user session trail |
 | **Source Management** | Daftar source terdaftar, status aktif/nonaktif, API key management                       |
 | **Search**            | Full-text search di field `message`                                                      |
 
 ---
 
-### 6.7 User Activity Tracking
+### 6.9 AI Insight Engine (via Groq API)
+
+ULAM mengintegrasikan AI untuk membantu interpretasi log teknis:
+
+- **Technology**: Menggunakan **Groq API** dengan model **Llama 3 / Mixtral** (High-speed inference).
+- **Error Summarization**: Mengubah stack trace yang kompleks menjadi ringkasan satu kalimat yang mudah dipahami manusia.
+- **RCA (Root Cause Analysis)**: Memberikan kemungkinan penyebab utama berdasarkan pesan error.
+- **Solution Suggestion**: Memberikan 3 langkah perbaikan yang direkomendasikan.
+- **Trigger**:
+    - **Automatic**: Untuk log level `CRITICAL`, AI di-trigger otomatis di background.
+    - **Manual**: User bisa menekan tombol "Analyze" pada log level apapun di dashboard.
+
+---
+
+### 6.10 User Activity Tracking
 
 Ini adalah fitur **pertama selain error monitoring** — mencatat siapa yang melakukan apa, dari mana, dan dengan cara apa. Tidak hanya error, tapi seluruh jejak aktivitas pengguna lintas semua source yang terdaftar.
 
@@ -375,6 +406,17 @@ Halaman khusus di dashboard ULAM untuk memantau aktivitas:
 | Cookie flags     | `HttpOnly`, `Secure`, `SameSite=Strict`                      |
 | CORS             | Whitelist origin dashboard saja                              |
 
+### 7.5 Log Retention Policy
+
+Untuk menjaga performa database dan efisiensi penyimpanan:
+
+| Retention Rule       | Detail                                          |
+| -------------------- | ----------------------------------------------- |
+| **Max Retention**    | Log akan dihapus otomatis setelah 30 hari       |
+| **Critical Logs**    | Log level `CRITICAL` disimpan selama 90 hari    |
+| **Cleanup Schedule** | Background job dijalankan setiap hari pada 02:00 UTC |
+| **Auto-Archive**     | (Post-MVP) Opsi backup ke S3 sebelum dihapus    |
+
 ### 7.4 Scalability
 
 | Aspek                   | Kapasitas MVP                             |
@@ -474,6 +516,7 @@ LogEntry {
   message     text       — Pesan utama log
   stack_trace text?      — Stack trace (opsional)
   context     jsonb?     — Metadata bebas
+  ai_insight  jsonb?     — Analisis AI dari Groq
   ip_address  string?    — IP pengirim
   created_at  timestamp  — Waktu diterima (UTC)
 }
@@ -494,10 +537,8 @@ Application {
 
 | Feature                    | Alasan Ditunda                  |
 | -------------------------- | ------------------------------- |
-| Log retention automation   | Manual cukup untuk MVP          |
 | CSV/Excel export           | Tidak urgent                    |
 | Slack/Telegram notifikasi  | SMTP cukup                      |
-| AI error summarization     | Post-MVP                        |
 | Custom alert rules per app | Hardcoded trigger cukup         |
 | Multi-admin dengan RBAC    | Single admin cukup              |
 | SDK resmi per bahasa       | Helper function sederhana cukup |

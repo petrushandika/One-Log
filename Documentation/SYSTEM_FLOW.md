@@ -45,8 +45,13 @@ Terjadi ketika project eksternal mendeteksi event dan mengirimkan log ke ULAM.
 6. ULAM API — Handler: Payload Validation
    └─ Check required fields (source_id, category, level, message)
    └─ Jika invalid → 400 Bad Request
-         │
-         ├─────────────────────────────────────────────► 7a. Return 202 Accepted to Client
+          │
+          ▼
+7. ULAM API — Middleware: Data Masking (PII)
+   └─ Scan field `message` & `context`
+   └─ Replace sensitive keys with `***`
+          │
+          ├─────────────────────────────────────────────► 7a. Return 202 Accepted to Client
          │                                                   (< 100ms)
          ▼ (goroutine — async)
 8. Background Worker: Save to Database
@@ -67,6 +72,62 @@ Terjadi ketika project eksternal mendeteksi event dan mengirimkan log ke ULAM.
     └─ Render HTML template
     └─ smtp.SendMail() ke ALERT_EMAIL
     └─ Update throttle map timestamp
+
+---
+
+## F. Log Retention Flow (Cleanup)
+
+Proyek dijalankan secara berkala untuk menjaga kebersihan data.
+
+```
+1. Cron Job: Triggered at 02:00 UTC Daily
+          │
+          ▼
+2. Retention Worker: Build Delete Queries
+   ├─ DELETE FROM log_entries WHERE level != 'CRITICAL' AND created_at < NOW() - 30 days
+   └─ DELETE FROM log_entries WHERE level = 'CRITICAL'  AND created_at < NOW() - 90 days
+          │
+          ▼
+3. PostgreSQL: Execute Batch Deletion
+          │
+          ▼
+4. Worker: VACUUM (Optional) & Log Summary to stdout
+
+---
+
+## G. AI Insight Flow (via Groq API)
+
+Bagaimana sistem memproses analisis log teknis menggunakan AI.
+
+```
+1. Trigger: Level == CRITICAL (Auto) atau Klik Tombol "Analyze" (Manual)
+          │
+          ▼
+2. API Service: Collect Log Context
+   └─ Ambil Message + Stack Trace + Context (User ID, Endpoint, dll.)
+   └─ Gabungkan ke dalam prompt template
+          │
+          ▼
+3. Groq Worker: Call Groq API
+   └─ Endpoint: https://api.groq.com/openai/v1/chat/completions
+   └─ Model: llama-3.3-70b-versatile
+   └─ Header: Authorization: Bearer <GROQ_API_KEY>
+          │
+          ▼
+4. Groq Response Processing
+   └─ Parse JSON response (Summary, RCA, Solution)
+   └─ Jika gagal → Return error / Silently skip
+          │
+          ▼
+5. Persistence & Delivery
+   └─ Update record log_entries (kolom: ai_insight)
+   └─ (Jika Auto) Sertakan insight dalam Email Notification
+          │
+          ▼
+6. Dashboard: Display Result
+   └─ Tampilkan markdown formatted insight pada detail log
+```
+```
 ```
 
 **Karakteristik penting:**

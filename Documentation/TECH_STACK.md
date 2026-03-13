@@ -18,6 +18,7 @@
 │  Database     → PostgreSQL 17                     │
 │  Auth         → JWT (golang-jwt v5) + API Key     │
 │  Email        → SMTP (net/smtp)                   │
+│  AI Engine    → Groq API (Llama 3.3)              │
 │  Container    → Docker + Docker Compose v2        │
 │  Runtime      → Node.ts 22 LTS (frontend build)  │
 │  Version Ctrl → Git                               │
@@ -362,7 +363,22 @@ SMTP_PORT = "587"
 SMTP_USER = "your-email@gmail.com"
 SMTP_PASS = "xxxx xxxx xxxx xxxx"   // App Password, bukan password akun
 ALERT_EMAIL = "admin@your-domain.com"
+GROQ_API_KEY = "gsk_xxxx..."        // API Key dari Groq Console
 ```
+
+---
+
+## AI Engine
+
+### Groq API (Llama 3.3)
+
+| Spec           | Detail                                                  |
+| -------------- | ------------------------------------------------------- |
+| **Model**      | `llama-3.3-70b-versatile`                               |
+| **Inference**  | LPUs (Language Processing Units) by Groq                |
+| **Latency**    | < 500ms per analysis                                    |
+| **Why Groq?**  | Kecepatan luar biasa, biaya rendah, model open-weights  |
+| **Function**   | Summarization, RCA, and Solution suggestion for logs    |
 
 ---
 

@@ -33,6 +33,7 @@ Fondasi sistem: terima log, simpan, tampilkan, dan notifikasi.
 - [ ] SMTP email integration
 - [ ] HTML email template
 - [ ] Throttle in-memory (5 menit per error type)
+- [ ] **AI Insight Integration (Groq API)** — Auto analysis for CRITICAL logs
 
 ### Frontend
 
@@ -41,6 +42,7 @@ Fondasi sistem: terima log, simpan, tampilkan, dan notifikasi.
 - [ ] Overview dashboard — stats cards
 - [ ] Log Table + filter (source, level, category, date)
 - [ ] Log Detail modal — JSON viewer + stack trace
+- [ ] **AI "Analyze" Button** — Manual trigger on log selection
 - [ ] Sources Management page
 
 ### Infra
@@ -245,7 +247,6 @@ Agar tidak pusing membaca ribuan baris log yang sama — kelompokkan dan analisi
 
 ### AI Integration
 
-- [ ] **AI Stack Trace Analysis** — kirim stack trace ke Gemini/OpenAI → dapat saran perbaikan kode
 - [ ] **AI Daily Digest** — LLM merangkum error/anomali hari ini dalam bahasa natural (dikirim via email)
 - [ ] **AI Error Deduplication** — gunakan embedding untuk mengelompokkan error yang semantically similar (bukan hanya exact match)
 - [ ] **Prompt Context** — sertakan framework, bahasa, dan error history agar AI suggestion lebih relevan

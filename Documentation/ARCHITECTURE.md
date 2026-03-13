@@ -49,12 +49,12 @@ ULAM memisahkan tanggung jawab ke dalam layer yang jelas. Sisi kiri adalah **pro
           ┌──────────────────────┤
           │                      │
           ▼                      ▼ (goroutine)
-╔════════════════╗     ╔══════════════════════╗
-║  PostgreSQL    ║     ║  Notification Worker  ║
-║  (GORM)        ║     ║  - Throttle Check     ║
-║  log_entries   ║     ║  - SMTP Send          ║
-║  sources       ║     ╚══════════════════════╝
-╚════════════════╝
+╔════════════════╗     ╔══════════════════════╗     ╔══════════════╗
+║  PostgreSQL    ║     ║  Background Workers  ║     ║   Groq AI    ║
+║  (GORM)        ║     ║  - Email Notification║◄────╢   (LLM)      ║
+║  log_entries   ║     ║  - Retention Worker  ║     ║ - Llama 3.3  ║
+║  sources       ║     ║  - Grouping Engine   ║     ║ - Fast Inf   ║
+╚════════════════╝     ╚══════════════════════╝     ╚══════════════╝
           ▲
 ╔═════════╪════════════════════════════════════════════════════════════════╗
 ║         │                FRONTEND LAYER (React + TypeScript)             ║
@@ -92,7 +92,8 @@ internal/
 │   ├── log-service.go
 │   ├── app-service.go
 │   ├── auth-service.go
-│   └── notification-service.go
+│   ├── notification-service.go
+│   └── ai-service.go     ← Groq integration logic
 │
 ├── repository/          ← Layer 3: Data Access
 │   ├── log-repo.go
@@ -110,7 +111,9 @@ internal/
 │   └── rate-limiter.go  ← Rate limiting per key/IP
 │
 ├── worker/              ← Background processes
-│   └── email-worker.go  ← Goroutine email dispatcher
+│   ├── email-worker.go  ← Goroutine email dispatcher
+│   ├── retention-job.go ← Daily cleanup based on policy
+│   └── grouping-job.go  ← Aggregating logs for dashboard
 │
 ├── infra/               ← Infrastructure concerns
 │   ├── db/
@@ -390,5 +393,6 @@ volumes:
 | `SMTP_USER`    | Backend  | Email pengirim                           |
 | `SMTP_PASS`    | Backend  | App Password Gmail                       |
 | `ALERT_EMAIL`  | Backend  | Email penerima notifikasi (admin)        |
+| `GROQ_API_KEY` | Backend  | API Key dari Groq Console                |
 | `SERVER_PORT`  | Backend  | Default `8080`                           |
 | `VITE_API_URL` | Frontend | `https://api.ulam.your-domain.com`       |
