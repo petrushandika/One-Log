@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useLocation, Outlet, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutGrid, FileText, Settings, ShieldAlert, LogOut, Terminal, Menu, X } from 'lucide-react';
+import { LayoutGrid, FileText, Settings, ShieldAlert, LogOut, Terminal, Menu, X, BugPlay } from 'lucide-react';
 
 export default function Layout() {
   const location = useLocation();
@@ -16,6 +16,7 @@ export default function Layout() {
   const menuItems = [
     { title: 'Overview', icon: LayoutGrid, path: '/' },
     { title: 'Logs', icon: FileText, path: '/logs' },
+    { title: 'Issues', icon: BugPlay, path: '/issues' },
     { title: 'Sources', icon: Settings, path: '/sources' },
     { title: 'Audit Trail', icon: ShieldAlert, path: '/audit' },
   ];
@@ -152,8 +153,9 @@ export default function Layout() {
                 <>
                   <span className="text-zinc-600">&gt;</span>
                   <span className="text-zinc-200 font-semibold">
-                    {location.pathname === '/logs' ? 'Logs' : 
-                     location.pathname === '/sources' ? 'Sources' : 
+                    {location.pathname === '/logs' ? 'Logs' :
+                     location.pathname === '/issues' ? 'Issues' :
+                     location.pathname === '/sources' ? 'Sources' :
                      location.pathname === '/audit' ? 'Audit Trail' : 'Page'}
                   </span>
                 </>

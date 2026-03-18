@@ -1,20 +1,80 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { ShieldAlert, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ShieldAlert, Search, ChevronLeft, ChevronRight, AlertTriangle, Info, ShieldCheck } from 'lucide-react';
+import { activityApi } from '../shared/lib/api';
+
+interface ActivityLog {
+  id: number;
+  source_id: string;
+  category: string;
+  level: string;
+  message: string;
+  ip_address: string;
+  created_at: string;
+  context: Record<string, unknown> | null;
+}
+
+const LEVEL_STYLES: Record<string, string> = {
+  CRITICAL: 'bg-rose-500/10 text-rose-400 border-rose-500/20',
+  ERROR: 'bg-red-500/10 text-red-400 border-red-500/20',
+  WARN: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+  INFO: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+  DEBUG: 'bg-zinc-500/10 text-zinc-400 border-zinc-500/20',
+};
+
+const LEVEL_ICONS: Record<string, React.ReactNode> = {
+  CRITICAL: <AlertTriangle size={14} />,
+  ERROR: <AlertTriangle size={14} />,
+  WARN: <AlertTriangle size={14} />,
+  INFO: <Info size={14} />,
+  DEBUG: <ShieldCheck size={14} />,
+};
 
 export default function Audit() {
-  const [itemsPerPage, setItemsPerPage] = useState<number | 'all'>(10);
+  const [activities, setActivities] = useState<ActivityLog[]>([]);
+  const [totalItems, setTotalItems] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
+  const [limit] = useState(20);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const audits = [
-    { id: 1, time: '2026-03-18 14:15:22', user: 'Admin', action: 'Regnerated API Key', target: 'Auth Service', ip: '192.168.1.100' },
-    { id: 2, time: '2026-03-18 14:02:10', user: 'Admin', action: 'Update Source Name', target: 'Gateway', ip: '192.168.1.100' },
-    { id: 3, time: '2026-03-18 13:45:05', user: 'System', action: 'Source disconnected', target: 'DB Analytics', ip: '-' },
-    { id: 4, time: '2026-03-18 13:30:00', user: 'Admin', action: 'User login successful', target: 'Auth', ip: '192.168.1.5' },
-  ];
+  const maxPage = Math.max(1, Math.ceil(totalItems / limit));
 
-  const totalLogs = audits.length;
-  const maxPage = itemsPerPage === 'all' ? 1 : Math.ceil(totalLogs / itemsPerPage);
+  const fetchActivity = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const { data } = await activityApi.list({ page: currentPage, limit });
+      setActivities(data.data?.items ?? []);
+      setTotalItems(data.data?.meta?.total ?? 0);
+    } catch (err) {
+      console.error('Failed to fetch activity', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [currentPage, limit]);
+
+  useEffect(() => {
+    fetchActivity();
+  }, [fetchActivity]);
+
+  const displayed = searchQuery
+    ? activities.filter(
+        (a) =>
+          a.message.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          a.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (a.ip_address ?? '').includes(searchQuery),
+      )
+    : activities;
+
+  const getContextDisplay = (ctx: Record<string, unknown> | null): string => {
+    if (!ctx) return '—';
+    const keys = Object.keys(ctx);
+    if (keys.length === 0) return '—';
+    return keys
+      .slice(0, 2)
+      .map((k) => `${k}: ${ctx[k]}`)
+      .join(', ');
+  };
 
   return (
     <div className="space-y-6">
@@ -23,7 +83,9 @@ export default function Audit() {
           <ShieldAlert className="text-purple-400" size={28} />
           Audit Trail
         </h1>
-        <p className="text-sm text-zinc-400">Track administrative and system events history</p>
+        <p className="text-sm text-zinc-400">
+          Immutable activity log — {totalItems.toLocaleString()} events tracked
+        </p>
       </div>
 
       <div className="flex flex-col gap-4 md:flex-row md:items-center">
@@ -31,8 +93,10 @@ export default function Audit() {
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
           <input
             type="text"
-            placeholder="Search action, users, IP..."
-            className="w-full pl-11 pr-4 py-2.5 rounded-xl bg-white/3 border border-white/5 text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-purple-500/30 transition-all text-sm"
+            placeholder="Search message, category, IP..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-11 pr-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/5 text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-purple-500/30 transition-all text-sm"
           />
         </div>
       </div>
@@ -40,70 +104,94 @@ export default function Audit() {
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="rounded-2xl bg-white/2 border border-white/5 backdrop-blur-sm overflow-hidden"
+        className="rounded-2xl bg-white/[0.02] border border-white/5 backdrop-blur-sm overflow-hidden"
       >
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
               <tr className="border-b border-white/5 text-xs font-semibold uppercase tracking-wider text-zinc-400">
                 <th className="px-6 py-4">Timestamp</th>
-                <th className="px-6 py-4">User</th>
-                <th className="px-6 py-4">Action</th>
-                <th className="px-6 py-4">Target</th>
+                <th className="px-6 py-4">Category</th>
+                <th className="px-6 py-4">Level</th>
+                <th className="px-6 py-4">Message</th>
+                <th className="px-6 py-4">Context</th>
                 <th className="px-6 py-4">IP Address</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/3 text-sm text-zinc-300">
-              {audits.map((item) => (
-                <tr key={item.id} className="hover:bg-white/1 transition-colors">
-                  <td className="px-6 py-4 text-xs font-mono text-zinc-500">{item.time}</td>
-                  <td className="px-6 py-4 font-semibold text-purple-400">{item.user}</td>
-                  <td className="px-6 py-4 text-zinc-200">{item.action}</td>
-                  <td className="px-6 py-4 text-zinc-400">{item.target}</td>
-                  <td className="px-6 py-4 text-xs font-mono text-zinc-500">{item.ip}</td>
+            <tbody className="divide-y divide-white/[0.03] text-sm text-zinc-300">
+              {isLoading ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <tr key={i}>
+                    {Array.from({ length: 6 }).map((__, j) => (
+                      <td key={j} className="px-6 py-4">
+                        <div className="h-4 rounded bg-white/[0.03] animate-pulse" />
+                      </td>
+                    ))}
+                  </tr>
+                ))
+              ) : displayed.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center text-zinc-500">
+                    No activity events found.
+                  </td>
                 </tr>
-              ))}
+              ) : (
+                displayed.map((item) => (
+                  <tr key={item.id} className="hover:bg-white/[0.01] transition-colors">
+                    <td className="px-6 py-4 text-xs font-mono text-zinc-500 whitespace-nowrap">
+                      {new Date(item.created_at).toLocaleString()}
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="text-xs font-semibold text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded-md">
+                        {item.category}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span
+                        className={`flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold border w-fit ${
+                          LEVEL_STYLES[item.level] ?? LEVEL_STYLES.DEBUG
+                        }`}
+                      >
+                        {LEVEL_ICONS[item.level]}
+                        {item.level}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-zinc-200 max-w-xs truncate">{item.message}</td>
+                    <td className="px-6 py-4 text-xs text-zinc-500 max-w-xs truncate">
+                      {getContextDisplay(item.context)}
+                    </td>
+                    <td className="px-6 py-4 text-xs font-mono text-zinc-500">
+                      {item.ip_address || '—'}
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
 
         {/* Pagination Footer */}
         <div className="p-4 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2 text-sm text-zinc-400">
-            <span>Show</span>
-            <select
-              value={itemsPerPage}
-              onChange={(e) => {
-                const val = e.target.value === 'all' ? 'all' : Number(e.target.value);
-                setItemsPerPage(val);
-                setCurrentPage(1);
-              }}
-              className="px-2 py-1 rounded bg-white/4 border border-white/8 text-zinc-200 focus:outline-none"
-            >
-              <option value="10">10</option>
-              <option value="50">50</option>
-              <option value="100">100</option>
-              <option value="all">All</option>
-            </select>
-            <span>entries</span>
-          </div>
-
+          <span className="text-sm text-zinc-400">
+            Showing {displayed.length} of {totalItems.toLocaleString()} events
+          </span>
           <div className="flex items-center gap-4">
             <span className="text-sm text-zinc-400">
-              Page <span className="text-zinc-100">{currentPage}</span> of <span className="text-zinc-100">{maxPage}</span>
+              Page <span className="text-zinc-100">{currentPage}</span> of{' '}
+              <span className="text-zinc-100">{maxPage}</span>
             </span>
             <div className="flex items-center gap-1">
               <button
                 disabled={currentPage === 1}
                 onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                className="p-2 rounded-lg border border-white/4 hover:bg-white/3 disabled:opacity-40 text-zinc-300 disabled:cursor-not-allowed"
+                className="p-2 rounded-lg border border-white/[0.04] hover:bg-white/[0.03] disabled:opacity-40 text-zinc-300 disabled:cursor-not-allowed"
               >
                 <ChevronLeft size={16} />
               </button>
               <button
                 disabled={currentPage === maxPage}
                 onClick={() => setCurrentPage((p) => Math.min(maxPage, p + 1))}
-                className="p-2 rounded-lg border border-white/4 hover:bg-white/3 disabled:opacity-40 text-zinc-300 disabled:cursor-not-allowed"
+                className="p-2 rounded-lg border border-white/[0.04] hover:bg-white/[0.03] disabled:opacity-40 text-zinc-300 disabled:cursor-not-allowed"
               >
                 <ChevronRight size={16} />
               </button>

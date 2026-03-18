@@ -1,14 +1,14 @@
 import axios from 'axios';
 
-// 1. Create Axios Instance set base config
+const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080/api';
+
 const api = axios.create({
-  baseURL: 'http://localhost:8080/api/v1',
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  baseURL: BASE_URL,
+  headers: { 'Content-Type': 'application/json' },
+  withCredentials: true,
 });
 
-// 2. Setup JWT Auth Interceptor
+// Request: attach Bearer token from localStorage (legacy support)
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
@@ -17,30 +17,98 @@ api.interceptors.request.use(
     }
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => Promise.reject(error),
 );
 
-// 3. API Methods Index
+// Response: auto-logout on 401
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token');
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  },
+);
+
+// ─── Auth ───────────────────────────────────────────────────────────────────
 export const authApi = {
-  login: (data: { email?: string; password?: string }) => api.post('/auth/login', data),
+  login: (data: { email: string; password: string }) => api.post('/auth/login', data),
+  refresh: () => api.post('/auth/refresh'),
+  logout: () => api.post('/auth/logout'),
 };
 
+// ─── Stats ──────────────────────────────────────────────────────────────────
 export const statsApi = {
   getOverview: () => api.get('/stats/overview'),
+  getActivitySummary: () => api.get('/stats/activity'),
 };
 
+// ─── Sources ────────────────────────────────────────────────────────────────
 export const sourcesApi = {
   getAll: () => api.get('/sources'),
   getByID: (id: string) => api.get(`/sources/${id}`),
-  create: (data: { name: string; url: string }) => api.post('/sources', data),
+  create: (data: { name: string; health_url?: string }) => api.post('/sources', data),
+  update: (id: string, data: { name?: string; health_url?: string; status?: string }) =>
+    api.patch(`/sources/${id}`, data),
   rotateKey: (id: string) => api.post(`/sources/${id}/rotate-key`),
 };
 
+// ─── Logs ────────────────────────────────────────────────────────────────────
 export const logsApi = {
-  getLogs: (params: { level?: string; source?: string; search?: string } = {}) => 
-    api.get('/logs', { params }),
+  getLogs: (params: {
+    source_id?: string;
+    level?: string;
+    category?: string;
+    page?: number;
+    limit?: number;
+  } = {}) => api.get('/logs', { params }),
   getByID: (id: number) => api.get(`/logs/${id}`),
   analyze: (id: number) => api.post(`/logs/${id}/analyze`),
+  export: (params: { source_id?: string; level?: string; category?: string } = {}) =>
+    api.get('/logs/export', { params, responseType: 'blob' }),
+};
+
+// ─── Activity ────────────────────────────────────────────────────────────────
+export const activityApi = {
+  list: (params: {
+    source_id?: string;
+    category?: string;
+    page?: number;
+    limit?: number;
+  } = {}) => api.get('/activity', { params }),
+  summary: (params: { source_id?: string; period?: string } = {}) =>
+    api.get('/activity/summary', { params }),
+  byUser: (userId: string) => api.get(`/activity/users/${userId}`),
+  suspicious: (params: { source_id?: string; page?: number; limit?: number } = {}) =>
+    api.get('/activity/suspicious', { params }),
+};
+
+// ─── APM ─────────────────────────────────────────────────────────────────────
+export const apmApi = {
+  endpointStats: (params: { source_id?: string; period?: string } = {}) =>
+    api.get('/apm/endpoints', { params }),
+};
+
+// ─── Issues ──────────────────────────────────────────────────────────────────
+export const issuesApi = {
+  list: (params: {
+    source_id?: string;
+    status?: string;
+    page?: number;
+    limit?: number;
+  } = {}) => api.get('/issues', { params }),
+  get: (fingerprint: string) => api.get(`/issues/${fingerprint}`),
+  updateStatus: (fingerprint: string, status: string) =>
+    api.patch(`/issues/${fingerprint}`, { status }),
+  logs: (fingerprint: string, params: { page?: number; limit?: number } = {}) =>
+    api.get(`/issues/${fingerprint}/logs`, { params }),
+};
+
+// ─── Status (public) ─────────────────────────────────────────────────────────
+export const statusApi = {
+  getPublic: () => api.get('/status'),
 };
 
 export default api;

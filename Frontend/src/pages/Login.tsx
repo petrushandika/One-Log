@@ -161,7 +161,7 @@ export default function Login() {
                   <input
                     type="email"
                     required
-                    placeholder="admin@example.com"
+                    placeholder="admin@onelog.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="w-full pl-11 pr-4 py-2.5 rounded-xl bg-zinc-800/40 border border-white/[0.05] text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-purple-500/30 focus:bg-zinc-800/60 transition-all text-sm"
