@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Settings, Plus, Key, ToggleRight, CheckCircle, XCircle, X, Copy, RefreshCw } from 'lucide-react';
+import { sourcesApi } from '../shared/lib/api';
 
 interface Source {
   id: string;
@@ -21,29 +22,52 @@ export default function Sources() {
     setTimeout(() => setToast(null), 2500);
   };
 
-  const [sources, setSources] = useState([
-    { id: '1', name: 'Auth Service', apiKey: 'REDACTED_KEY', status: 'ONLINE', url: 'https://auth.sample.com' },
-    { id: '2', name: 'Gateway', apiKey: 'REDACTED_KEY', status: 'ONLINE', url: 'https://gateway.sample.com' },
-    { id: '3', name: 'DB Analytics', apiKey: 'REDACTED_KEY', status: 'OFFLINE', url: 'https://db.sample.com' },
-  ]);
+  const [sources, setSources] = useState<Source[]>([]);
   const [newSource, setNewSource] = useState({ name: '', url: '' });
 
-  const handleRegister = (e: React.FormEvent) => {
+  const fetchSources = useCallback(async () => {
+    try {
+      const { data } = await sourcesApi.getAll();
+      setSources(data.data || []);
+    } catch (error) {
+      console.error(error);
+      showToast('Failed to fetch sources from backend', 'error');
+    }
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+    const load = async () => {
+      try {
+        const { data } = await sourcesApi.getAll();
+        if (isMounted) {
+          setSources(data.data || []);
+        }
+      } catch (error) {
+        if (isMounted) console.error(error);
+      }
+    };
+    load();
+    return () => { isMounted = false; };
+  }, []);
+
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newSource.name || !newSource.url) return;
 
-    const created = {
-      id: String(sources.length + 1),
-      name: newSource.name,
-      url: newSource.url,
-      apiKey: `ulam_live_src_${Math.random().toString(36).substr(2, 5)}`,
-      status: 'ONLINE'
-    };
-
-    setSources([...sources, created]);
-    setNewSource({ name: '', url: '' });
-    setIsModalOpen(false);
-    showToast('Source application registered successfully!');
+    try {
+      await sourcesApi.create({
+        name: newSource.name,
+        url: newSource.url,
+      });
+      showToast('Source application registered successfully!');
+      fetchSources(); // reload from backend
+      setNewSource({ name: '', url: '' });
+      setIsModalOpen(false);
+    } catch (error) {
+      console.error(error);
+      showToast('Failed to register source', 'error');
+    }
   };
 
   const handleUpdate = (e: React.FormEvent) => {

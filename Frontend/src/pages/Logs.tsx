@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Filter, Search, ChevronRight, X, Sparkles, ChevronLeft } from 'lucide-react';
+import { logsApi } from '../shared/lib/api';
 
 interface Log {
   id: number;
@@ -23,12 +24,22 @@ export default function Logs() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [aiResponse, setAiResponse] = useState<string | null>(null);
 
-  const logs = [
-    { id: 1, time: '2026-03-18 14:02:12', level: 'ERROR', category: 'SYSTEM_ERROR', message: 'Database connection pool exhausted', source: 'Auth Service', stack: 'main.connectDB() at db.go:45\ngoroutine 1 [running]...' },
-    { id: 2, time: '2026-03-18 14:00:05', level: 'CRITICAL', category: 'SECURITY', message: 'Brute force attack detected from IP 192.168.1.1', source: 'Gateway', stack: '' },
-    { id: 3, time: '2026-03-18 13:58:30', level: 'INFO', category: 'USER_ACTIVITY', message: 'User (id: usr_123) logged in successfuly', source: 'Auth Service', stack: '' },
-    { id: 4, time: '2026-03-18 13:55:10', level: 'WARN', category: 'PERFORMANCE', message: 'Slow query detected: SELECT * FROM logs WHERE duration > 200ms', source: 'DB Analytics', stack: '' },
-  ];
+  const [logs, setLogs] = useState<Log[]>([]);
+  useEffect(() => {
+    const fetchLogs = async () => {
+      try {
+        const { data } = await logsApi.getLogs({
+          level: filters.level || undefined,
+          source: filters.source || undefined,
+          search: searchQuery || undefined,
+        });
+        setLogs(data.data?.items || []);
+      } catch (error) {
+         console.error("Failed to fetch logs", error);
+      }
+    };
+    fetchLogs();
+  }, [filters, searchQuery]);
 
   const levelStyles: Record<string, string> = {
     CRITICAL: 'bg-rose-500/10 text-rose-400 border-rose-500/20',

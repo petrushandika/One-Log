@@ -1,12 +1,32 @@
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { ArrowUpRight, ArrowDownRight, Activity, Terminal, Shield, AlertCircle } from 'lucide-react';
+import { statsApi } from '../shared/lib/api';
 
 export default function Overview() {
+  const [liveStats, setLiveStats] = useState({ total: 1234, errors: 42, active: 5 });
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const { data } = await statsApi.getOverview();
+        setLiveStats({
+          total: data.data?.total || 0,
+          errors: data.data?.errors || 0,
+          active: data.data?.active_sources || 3 // placeholders
+        });
+      } catch (error) {
+         console.error(error);
+      }
+    };
+    fetchStats();
+  }, []);
+
   const stats = [
-    { name: 'Total Logs (24h)', value: '1,234', change: '+12%', positive: true, icon: Terminal, color: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/20' },
-    { name: 'System Errors', value: '42', change: '-4%', positive: true, icon: AlertCircle, color: 'text-rose-400', bg: 'bg-rose-500/10', border: 'border-rose-500/20' },
-    { name: 'Active Sources', value: '5', change: '0%', positive: true, icon: Activity, color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' },
+    { name: 'Total Logs (24h)', value: String(liveStats.total), change: '+12%', positive: true, icon: Terminal, color: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/20' },
+    { name: 'System Errors', value: String(liveStats.errors), change: '-4%', positive: true, icon: AlertCircle, color: 'text-rose-400', bg: 'bg-rose-500/10', border: 'border-rose-500/20' },
+    { name: 'Active Sources', value: String(liveStats.active), change: '0%', positive: true, icon: Activity, color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' },
     { name: 'Security Alerts', value: '3', change: '+1', positive: false, icon: Shield, color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20' },
   ];
 

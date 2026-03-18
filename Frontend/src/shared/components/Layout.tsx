@@ -1,11 +1,17 @@
 import { useState } from 'react';
-import { Link, useLocation, Outlet } from 'react-router-dom';
+import { Link, useLocation, Outlet, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LayoutGrid, FileText, Settings, ShieldAlert, LogOut, Terminal, Menu, X } from 'lucide-react';
 
 export default function Layout() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  const handleLogout = () => {
+     localStorage.removeItem('token');
+     navigate('/login');
+  };
 
   const menuItems = [
     { title: 'Overview', icon: LayoutGrid, path: '/' },
@@ -55,7 +61,10 @@ export default function Layout() {
               <p className="text-xs text-zinc-500">Full Access</p>
             </div>
           </div>
-          <button className="flex items-center justify-center w-full gap-2 px-4 py-3 text-sm font-semibold transition-all duration-200 border rounded-xl bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white border-red-500/20 shadow-lg shadow-red-500/5">
+          <button 
+            onClick={handleLogout}
+            className="flex items-center justify-center w-full gap-2 px-4 py-3 text-sm font-semibold transition-all duration-200 border rounded-xl bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white border-red-500/20 shadow-lg shadow-red-500/5"
+          >
             <LogOut size={16} />
             Sign Out
           </button>
@@ -116,7 +125,10 @@ export default function Layout() {
               </div>
 
               <div>
-                <button className="flex items-center justify-center w-full gap-2 px-4 py-3 text-sm font-semibold transition-all duration-200 border rounded-xl bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white border-red-500/20 shadow-lg shadow-red-500/5">
+                <button 
+                  onClick={handleLogout}
+                  className="flex items-center justify-center w-full gap-2 px-4 py-3 text-sm font-semibold transition-all duration-200 border rounded-xl bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white border-red-500/20 shadow-lg shadow-red-500/5"
+                >
                   <LogOut size={16} />
                   Sign Out
                 </button>
