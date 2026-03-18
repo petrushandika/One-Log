@@ -39,14 +39,28 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	passMatch := subtle.ConstantTimeCompare([]byte(req.Password), []byte(adminPassword)) == 1
 
 	if !emailMatch || !passMatch {
+		clientIP := c.ClientIP()
+
 		// Log failed attempt audit trail
 		_ = h.logSvc.IngestLog(domain.IngestLogRequest{
 			Category:  "AUTH_EVENT",
 			Level:     "WARN",
 			Message:   "Failed login attempt for admin panel",
-			IPAddress: c.ClientIP(),
+			IPAddress: clientIP,
 			Context:   map[string]interface{}{"attempted_email": req.Email},
 		}, "00000000-0000-0000-0000-000000000001") // Mock ULAM Internal UUID
+
+		// Fase 2: Brute Force Detection
+		isBruteForce, _ := h.logSvc.CheckBruteForce(clientIP)
+		if isBruteForce {
+			_ = h.logSvc.IngestLog(domain.IngestLogRequest{
+				Category:  "SECURITY",
+				Level:     "CRITICAL",
+				Message:   "Brute force attempt detected from IP: " + clientIP,
+				IPAddress: clientIP,
+				Context:   map[string]interface{}{"note": "Exceeded 5 failed attempts in 10 minutes"},
+			}, "00000000-0000-0000-0000-000000000001")
+		}
 
 		utils.Error(c, http.StatusUnauthorized, "Invalid credentials", nil)
 		return

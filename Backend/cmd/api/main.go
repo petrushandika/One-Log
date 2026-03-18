@@ -63,6 +63,9 @@ func main() {
 	retentionWorker := worker.NewRetentionWorker(logRepo, 30) // 30 days retention
 	retentionWorker.Start()
 
+	uptimeWorker := worker.NewUptimeWorker(sourceRepo, logService)
+	uptimeWorker.Start()
+
 	// 5. Setup Router (Gin Framework)
 	port := os.Getenv("SERVER_PORT")
 	if port == "" {
@@ -104,6 +107,9 @@ func main() {
 			admin.GET("/logs", logHandler.GetAll)
 			admin.GET("/logs/:id", logHandler.GetByID)
 			admin.POST("/logs/:id/analyze", logHandler.Analyze)
+
+			// Stats
+			admin.GET("/stats/overview", logHandler.GetStatsOverview)
 
 			// Sources
 			admin.POST("/sources", sourceHandler.Create)

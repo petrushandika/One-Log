@@ -59,13 +59,14 @@ func (h *LogHandler) GetAll(c *gin.Context) {
 	pageStr := c.DefaultQuery("page", "1")
 	sourceID := c.Query("source_id")
 	level := c.Query("level")
+	category := c.Query("category")
 
 	var limit, page int
 	// Parse basic using Sscanf, ignoring error and falling back to default inside service
 	_, _ = fmt.Sscanf(limitStr, "%d", &limit)
 	_, _ = fmt.Sscanf(pageStr, "%d", &page)
 
-	logs, total, err := h.service.GetLogs(limit, page, sourceID, level)
+	logs, total, err := h.service.GetLogs(limit, page, sourceID, level, category)
 	if err != nil {
 		utils.Error(c, http.StatusInternalServerError, "Failed to fetch logs", err.Error())
 		return
@@ -118,4 +119,15 @@ func (h *LogHandler) Analyze(c *gin.Context) {
 	}
 
 	utils.Success(c, http.StatusOK, "AI Analysis completed", logEntry)
+}
+
+// GetStatsOverview handles GET /api/v1/stats/overview requests
+func (h *LogHandler) GetStatsOverview(c *gin.Context) {
+	stats, err := h.service.GetStatsOverview()
+	if err != nil {
+		utils.Error(c, http.StatusInternalServerError, "Failed to load stats overview", err.Error())
+		return
+	}
+
+	utils.Success(c, http.StatusOK, "Stats retrieved successfully", stats)
 }

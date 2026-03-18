@@ -71,7 +71,7 @@ Mencatat **siapa melakukan apa, dari mana, kapan** — bukan hanya error, tapi s
 - [ ] **Login Timeline** — visual timeline login events per source per hari
 - [ ] **Failed Login Heatmap** — visualisasi jam-jam dengan high failed login rate
 - [ ] **Recent Sessions Table** — user, auth_method, IP, browser, device, timestamp, source
-- [ ] **Brute Force Detection** — alert jika `login_failed` > threshold dari satu IP dalam 10 menit
+- [x] **Brute Force Detection** — alert jika `login_failed` > threshold dari satu IP dalam 10 menit
 
 **Auth methods yang didukung:**
 
@@ -91,7 +91,7 @@ Mencatat **siapa melakukan apa, dari mana, kapan** — bukan hanya error, tapi s
 Catat setiap perubahan data penting di aplikasi client (CMS, Absensi, dll.) sebagai bukti otentik yang **tidak bisa diedit**.
 
 - [ ] **User Activity Log** — catat setiap kali admin mengubah/menghapus data (di CMS, absensi, dll.)
-- [ ] **Immutable Log Flag** — log dengan `category: AUDIT_TRAIL` tidak bisa dihapus via API, hanya via DB migration
+- [x] **Immutable Log Flag** — log dengan `category: AUDIT_TRAIL` tidak bisa dihapus via API, hanya via DB migration
 - [ ] **IP & Device Tracking** — field wajib: `ip_address`, `device_type`, `browser`, `os`
 - [ ] **Before/After Diff** — context menyimpan nilai sebelum dan sesudah perubahan
 - [ ] **Audit Trail Page** — halaman khusus di dashboard untuk audit, bisa filter by user/resource/action
@@ -189,11 +189,11 @@ Mirip [uptime.com](https://uptime.com) / [betterstack.com](https://betterstack.c
 
 ### Health Check Worker
 
-- [ ] **Health Check Goroutine** — background worker di ULAM yang ping URL terdaftar setiap N menit (default: 5 menit)
-- [ ] **Per-Source Health Endpoint** — tiap source bisa mendaftarkan URL health check (misal `https://absensi.app/health`)
+- [x] **Health Check Goroutine** — background worker di ULAM yang ping URL terdaftar setiap N menit (default: 5 menit)
+- [x] **Per-Source Health Endpoint** — tiap source bisa mendaftarkan URL health check (misal `https://absensi.app/health`)
 - [ ] **Status Enum**: `ONLINE`, `DEGRADED`, `OFFLINE`, `MAINTENANCE`
-- [ ] **Downtime Detection** — jika ping gagal 3x berturut-turut → status `OFFLINE` + kirim email alert
-- [ ] **Auto Log on Down** — sistem otomatis kirim log `level: CRITICAL`, `category: SYSTEM_ERROR` saat source offline
+- [x] **Downtime Detection** — jika ping gagal 3x berturut-turut → status `OFFLINE` + kirim email alert
+- [x] **Auto Log on Down** — sistem otomatis kirim log `level: CRITICAL`, `category: SYSTEM_ERROR` saat source offline
 
 ```go
 // worker/health-check-worker.go

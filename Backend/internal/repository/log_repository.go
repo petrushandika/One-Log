@@ -8,10 +8,12 @@ import (
 // Definition LogRepository interface
 type LogRepository interface {
 	Create(log *domain.LogEntry) error
-	FindAll(limit int, offset int, sourceID, level string) ([]domain.LogEntry, int64, error)
+	FindAll(limit int, offset int, sourceID, level, category string) ([]domain.LogEntry, int64, error)
 	FindByID(id uint) (*domain.LogEntry, error)
 	Update(log *domain.LogEntry) error
 	DeleteOlderThan(days int) error
+	GetStatsOverview() (map[string]interface{}, error)
+	CountFailedAttempts(ip string, durationMinutes int) (int64, error)
 }
 
 // Struct private for implementation
@@ -29,7 +31,7 @@ func (r *logRepository) Create(log *domain.LogEntry) error {
 	return r.db.Create(log).Error
 }
 
-func (r *logRepository) FindAll(limit int, offset int, sourceID, level string) ([]domain.LogEntry, int64, error) {
+func (r *logRepository) FindAll(limit int, offset int, sourceID, level, category string) ([]domain.LogEntry, int64, error) {
 	var logs []domain.LogEntry
 	var total int64
 	query := r.db.Model(&domain.LogEntry{})
@@ -39,6 +41,9 @@ func (r *logRepository) FindAll(limit int, offset int, sourceID, level string) (
 	}
 	if level != "" {
 		query = query.Where("level = ?", level)
+	}
+	if category != "" {
+		query = query.Where("category = ?", category)
 	}
 
 	err := query.Count(&total).Error
@@ -64,7 +69,40 @@ func (r *logRepository) Update(log *domain.LogEntry) error {
 }
 
 func (r *logRepository) DeleteOlderThan(days int) error {
-	// Standard Retention: 30 days. Criticals can be exempted or managed separately.
-	// For MVP, we delete all logs older than specified days.
-	return r.db.Where("created_at < NOW() - INTERVAL '1 day' * ?", days).Delete(&domain.LogEntry{}).Error
+	// Fase 2 Immutable Logs Guard: 
+	// Logs categorized as AUDIT_TRAIL should NOT be deleted by general retention policies.
+	return r.db.Where("created_at < NOW() - INTERVAL '1 day' * ? AND category != 'AUDIT_TRAIL'", days).Delete(&domain.LogEntry{}).Error
+}
+
+func (r *logRepository) GetStatsOverview() (map[string]interface{}, error) {
+	// Total count 
+	var total int64
+	if err := r.db.Model(&domain.LogEntry{}).Count(&total).Error; err != nil {
+		return nil, err
+	}
+
+	// Breakdown counts group by level
+	type result struct {
+		Level string
+		Count int64
+	}
+	var bResult []result
+	if err := r.db.Model(&domain.LogEntry{}).Select("level, count(*) as count").Group("level").Find(&bResult).Error; err != nil {
+		return nil, err
+	}
+
+	stats := map[string]interface{}{"total": total}
+	for _, row := range bResult {
+		stats[row.Level] = row.Count
+	}
+
+	return stats, nil
+}
+
+func (r *logRepository) CountFailedAttempts(ip string, durationMinutes int) (int64, error) {
+	var count int64
+	err := r.db.Model(&domain.LogEntry{}).
+		Where("ip_address = ? AND category = 'AUTH_EVENT' AND level = 'WARN' AND created_at >= NOW() - INTERVAL '1 minute' * ?", ip, durationMinutes).
+		Count(&count).Error
+	return count, err
 }

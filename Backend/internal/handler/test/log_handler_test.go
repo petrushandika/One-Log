@@ -27,7 +27,7 @@ func (m *mockLogService) IngestLog(req domain.IngestLogRequest, sourceID string)
 	return nil
 }
 
-func (m *mockLogService) GetLogs(limit int, page int, sourceID string, level string) ([]domain.LogEntry, int64, error) {
+func (m *mockLogService) GetLogs(limit int, page int, sourceID string, level string, category string) ([]domain.LogEntry, int64, error) {
 	return nil, 0, nil
 }
 
@@ -47,6 +47,14 @@ func (m *mockLogService) ManualAnalyzeLog(id uint) (*domain.LogEntry, error) {
 		Level:     "CRITICAL",
 		AIInsight: datatypes.JSON(`{"analysis":"mock insight"}`),
 	}, nil
+}
+
+func (m *mockLogService) GetStatsOverview() (map[string]interface{}, error) {
+	return map[string]interface{}{"total": 10}, nil
+}
+
+func (m *mockLogService) CheckBruteForce(ip string) (bool, error) {
+	return false, nil
 }
 
 func TestIngestLog_Success(t *testing.T) {

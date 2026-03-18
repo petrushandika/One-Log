@@ -12,6 +12,8 @@ type Source struct {
 	ID        string         `gorm:"type:uuid;default:gen_random_uuid();primaryKey" json:"id"`
 	Name      string         `gorm:"type:varchar(100);not null" json:"name"`
 	APIKey    string         `gorm:"type:varchar(255);uniqueIndex;not null" json:"-"`
+	HealthURL string         `gorm:"type:varchar(255)" json:"health_url"` // Fase 4: Status page
+	Status    string         `gorm:"type:varchar(20);default:'ONLINE'" json:"status"`
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
