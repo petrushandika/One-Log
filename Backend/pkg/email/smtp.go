@@ -23,11 +23,11 @@ type SMTPEmailService struct {
 
 func NewSMTPEmailService() *SMTPEmailService {
 	return &SMTPEmailService{
-		Host:     os.Getenv("SMTP_HOST"),
-		Port:     os.Getenv("SMTP_PORT"),
-		Username: os.Getenv("SMTP_USERNAME"),
-		Password: os.Getenv("SMTP_PASSWORD"),
-		From:     os.Getenv("SMTP_FROM"),
+		Host:     os.Getenv("MAIL_HOST"),
+		Port:     os.Getenv("MAIL_PORT"),
+		Username: os.Getenv("MAIL_USER"),
+		Password: os.Getenv("MAIL_PASSWORD"),
+		From:     os.Getenv("MAIL_FROM"),
 	}
 }
 

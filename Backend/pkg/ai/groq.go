@@ -26,7 +26,10 @@ func NewGroqClient() GroqClient {
 	if url == "" {
 		url = "https://api.groq.com/openai/v1/chat/completions"
 	}
-	model := os.Getenv("GROQ_MODEL")
+	model := os.Getenv("AI_MODEL")
+	if model == "" {
+		model = os.Getenv("GROQ_MODEL") // legacy fallback
+	}
 	if model == "" {
 		model = "llama3-8b-8192"
 	}
