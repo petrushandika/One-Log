@@ -77,7 +77,7 @@ export default function Sources() {
       if (rawKey && newSourceId) {
         setRevealedKeys((prev) => new Map(prev).set(newSourceId, { key: rawKey, visible: true }));
       }
-      showToast('Source registered! Copy the API key below.');
+      showToast('Source registered! Copy your API key below — it won\'t be shown again.');
     } catch {
       showToast('Failed to register source', 'error');
     } finally {
@@ -128,7 +128,7 @@ export default function Sources() {
       const newKey: string = data.data?.new_api_key ?? '';
       if (newKey) {
         setRevealedKeys((prev) => new Map(prev).set(id, { key: newKey, visible: true }));
-        showToast('New API key generated — save it now!');
+        showToast('New API key generated — copy it now, it won\'t be shown again.');
       } else {
         showToast('Key rotated', 'success');
       }
@@ -151,7 +151,7 @@ export default function Sources() {
 
   const copyKey = (id: string, fallback?: string) => {
     const key = revealedKeys.get(id)?.key ?? fallback ?? '';
-    if (!key) { showToast('No key to copy — rotate to reveal', 'error'); return; }
+    if (!key) { showToast('No key available — rotate to reveal a new key', 'error'); return; }
     navigator.clipboard.writeText(key);
     showToast('API key copied!');
   };
