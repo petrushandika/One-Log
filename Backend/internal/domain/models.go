@@ -21,15 +21,26 @@ type Source struct {
 
 // LogEntry presentation log from source
 type LogEntry struct {
-	ID         uint           `gorm:"primaryKey" json:"id"`
-	SourceID   string         `gorm:"type:uuid;not null;index" json:"source_id"`
-	Category   string         `gorm:"type:varchar(50);not null;index" json:"category"`
-	Level      string         `gorm:"type:varchar(20);not null;index" json:"level"`
-	Message    string         `gorm:"type:text;not null" json:"message"`
-	Context    datatypes.JSON `gorm:"type:jsonb" json:"context"`
-	StackTrace string         `gorm:"type:text" json:"stack_trace"`
-	IPAddress  string         `gorm:"type:varchar(45)" json:"ip_address"`
-	AIInsight  datatypes.JSON `gorm:"type:jsonb" json:"ai_insight"`
-	CreatedAt  time.Time      `gorm:"index" json:"created_at"`
-	DeletedAt  gorm.DeletedAt `gorm:"index" json:"-"`
+	ID          uint           `gorm:"primaryKey" json:"id"`
+	SourceID    string         `gorm:"type:uuid;not null;index" json:"source_id"`
+	Category    string         `gorm:"type:varchar(50);not null;index" json:"category"`
+	Level       string         `gorm:"type:varchar(20);not null;index" json:"level"`
+	Message     string         `gorm:"type:text;not null" json:"message"`
+	Context     datatypes.JSON `gorm:"type:jsonb" json:"context"`
+	StackTrace  string         `gorm:"type:text" json:"stack_trace"`
+	IPAddress   string         `gorm:"type:varchar(45)" json:"ip_address"`
+	AIInsight   datatypes.JSON `gorm:"type:jsonb" json:"ai_insight"`
+	Fingerprint string         `gorm:"type:varchar(64);index" json:"fingerprint"` // Fase 5: Error Grouping
+	CreatedAt   time.Time      `gorm:"index" json:"created_at"`
+	DeletedAt   gorm.DeletedAt `gorm:"index" json:"-"`
+}
+
+// SourceConfig represents configuration management for Fase 6
+type SourceConfig struct {
+	ID        uint      `gorm:"primaryKey" json:"id"`
+	SourceID  string    `gorm:"type:uuid;not null;index" json:"source_id"`
+	Key       string    `gorm:"type:varchar(100);not null" json:"key"`
+	Value     string    `gorm:"type:text" json:"value"`
+	IsSecret  bool      `gorm:"default:false" json:"is_secret"`
+	UpdatedAt time.Time `json:"updated_at"`
 }

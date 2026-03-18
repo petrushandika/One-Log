@@ -1,7 +1,9 @@
 package service
 
 import (
+	"crypto/sha256"
 	"encoding/json"
+	"fmt"
 
 	"github.com/petrushandika/one-log/internal/domain"
 	"github.com/petrushandika/one-log/internal/repository"
@@ -56,6 +58,18 @@ func (s *logService) IngestLog(req domain.IngestLogRequest, sourceID string) err
 		IPAddress:  req.IPAddress,
 		Context:    contextRaw,
 	}
+
+	// Fase 5: Fingerprint Setup
+	fingerprintSource := logEntry.SourceID + logEntry.Level + logEntry.Message
+	if logEntry.StackTrace != "" {
+		if len(logEntry.StackTrace) > 100 {
+			fingerprintSource += logEntry.StackTrace[:100]
+		} else {
+			fingerprintSource += logEntry.StackTrace
+		}
+	}
+	hash := sha256.Sum256([]byte(fingerprintSource))
+	logEntry.Fingerprint = fmt.Sprintf("%x", hash)
 
 	// Save to DB
 	err := s.repo.Create(&logEntry)

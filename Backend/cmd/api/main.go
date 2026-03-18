@@ -59,6 +59,10 @@ func main() {
 
 	authHandler := handler.NewAuthHandler(logService)
 
+	configRepo := repository.NewConfigRepository(db)
+	configService := service.NewConfigService(configRepo)
+	configHandler := handler.NewConfigHandler(configService)
+
 	// 5. Start Background Workers
 	retentionWorker := worker.NewRetentionWorker(logRepo, 30) // 30 days retention
 	retentionWorker.Start()
@@ -110,6 +114,10 @@ func main() {
 
 			// Stats
 			admin.GET("/stats/overview", logHandler.GetStatsOverview)
+
+			// Configs
+			admin.POST("/sources/:id/configs", configHandler.Save)
+			admin.GET("/sources/:id/configs", configHandler.GetBySource)
 
 			// Sources
 			admin.POST("/sources", sourceHandler.Create)

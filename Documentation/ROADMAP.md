@@ -231,8 +231,8 @@ Agar tidak pusing membaca ribuan baris log yang sama — kelompokkan dan analisi
 
 ### Error Grouping
 
-- [ ] **Auto-Grouping** — log dengan message dan stack trace yang mirip dikelompokkan menjadi satu "Issue"
-- [ ] **Fingerprinting Algorithm** — hash dari `(source_id + normalized_message + stack_trace[:100])` sebagai group key
+- [x] **Auto-Grouping** — log dengan message dan stack trace yang mirip dikelompokkan menjadi satu "Issue" (Via Fingerprinting)
+- [x] **Fingerprinting Algorithm** — hash dari `(source_id + normalized_message + stack_trace[:100])` sebagai group key
 - [ ] **Issue Tracker** — halaman "Issues" di dashboard: daftar group error dengan jumlah occurrence & first/last seen
 - [ ] **Issue Detail** — lihat semua individual log dalam satu group, tren occurrence per jam/hari
 - [ ] **Issue Status** — tandai issue sebagai `OPEN`, `RESOLVED`, `IGNORED`
@@ -276,15 +276,15 @@ Kelola semua konfigurasi aplikasi-aplikasi Anda dari satu tempat — tanpa harus
 
 ### Config Storage
 
-- [ ] **Config Table** — tabel `source_configs` di PostgreSQL: `source_id`, `key`, `value`, `is_secret`, `updated_at`
+- [x] **Config Table** — tabel `source_configs` di PostgreSQL: `source_id`, `key`, `value`, `is_secret`, `updated_at`
 - [ ] **Secret Management** — nilai sensitif (API key, password) dienkripsi dengan AES-256 sebelum disimpan
 - [ ] **Versioning** — setiap perubahan config tersimpan sebagai history (audit trail config)
 - [ ] **Environment Namespacing** — config bisa punya namespace: `production`, `staging`, `development`
 
 ### Config API
 
-- [ ] `GET /api/config/:source_slug` — aplikasi client pull config terbaru saat startup
-- [ ] `PUT /api/config/:source_slug/:key` — update config value via dashboard
+- [x] `GET /api/config/:source_slug` — aplikasi client pull config terbaru saat startup
+- [x] `PUT /api/config/:source_slug/:key` — update config value via dashboard
 - [ ] `GET /api/config/:source_slug/history` — riwayat perubahan config
 
 ### Hot Reload

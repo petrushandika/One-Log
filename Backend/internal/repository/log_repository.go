@@ -69,13 +69,13 @@ func (r *logRepository) Update(log *domain.LogEntry) error {
 }
 
 func (r *logRepository) DeleteOlderThan(days int) error {
-	// Fase 2 Immutable Logs Guard: 
+	// Fase 2 Immutable Logs Guard:
 	// Logs categorized as AUDIT_TRAIL should NOT be deleted by general retention policies.
 	return r.db.Where("created_at < NOW() - INTERVAL '1 day' * ? AND category != 'AUDIT_TRAIL'", days).Delete(&domain.LogEntry{}).Error
 }
 
 func (r *logRepository) GetStatsOverview() (map[string]interface{}, error) {
-	// Total count 
+	// Total count
 	var total int64
 	if err := r.db.Model(&domain.LogEntry{}).Count(&total).Error; err != nil {
 		return nil, err

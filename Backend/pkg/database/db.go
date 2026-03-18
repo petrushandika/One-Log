@@ -34,7 +34,7 @@ func InitDB() *gorm.DB {
 
 // Migrate do syncronize database schema
 func Migrate(db *gorm.DB) {
-	err := db.AutoMigrate(&domain.Source{}, &domain.LogEntry{})
+	err := db.AutoMigrate(&domain.Source{}, &domain.LogEntry{}, &domain.SourceConfig{})
 	if err != nil {
 		log.Fatalf("Migration failed %v", err)
 	}
