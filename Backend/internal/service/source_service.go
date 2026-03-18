@@ -15,6 +15,7 @@ type SourceService interface {
 	GetSources(userID uint) ([]domain.Source, error)
 	GetSourceByID(id string, userID uint) (*domain.Source, error)
 	RotateAPIKey(id string, userID uint) (string, error)
+	UpdateSource(id string, userID uint, req domain.UpdateSourceRequest) (*domain.Source, error)
 }
 
 type sourceService struct {
@@ -35,9 +36,10 @@ func (s *sourceService) CreateSource(req domain.CreateSourceRequest, userID uint
 	hashedAPIKey := utils.HashAPIKey(rawAPIKey)
 
 	source := domain.Source{
-		UserID: userID,
-		Name:   req.Name,
-		APIKey: hashedAPIKey, // Store only the SHA-256 hash in DB, never raw
+		UserID:    userID,
+		Name:      req.Name,
+		APIKey:    hashedAPIKey, // Store only the SHA-256 hash in DB, never raw
+		HealthURL: req.HealthURL,
 	}
 
 	if err := s.repo.Create(&source); err != nil {
@@ -86,4 +88,29 @@ func (s *sourceService) RotateAPIKey(id string, userID uint) (string, error) {
 	}
 
 	return rawAPIKey, nil
+}
+
+func (s *sourceService) UpdateSource(id string, userID uint, req domain.UpdateSourceRequest) (*domain.Source, error) {
+	source, err := s.repo.FindByID(id, userID)
+	if err != nil {
+		return nil, err
+	}
+	if source == nil {
+		return nil, errors.New("source not found")
+	}
+
+	if req.Name != nil {
+		source.Name = *req.Name
+	}
+	if req.HealthURL != nil {
+		source.HealthURL = *req.HealthURL
+	}
+	if req.Status != nil {
+		source.Status = *req.Status
+	}
+
+	if err := s.repo.Update(source); err != nil {
+		return nil, err
+	}
+	return source, nil
 }

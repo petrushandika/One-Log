@@ -24,11 +24,11 @@ func Success(c *gin.Context, code int, message string, data interface{}) {
 	})
 }
 
-func Error(c *gin.Context, code int, message string, data interface{}) {
+func Error(c *gin.Context, code int, message string, errors interface{}) {
 	c.JSON(code, APIResponse{
 		Status:  "error",
 		Code:    code,
 		Message: message,
-		Data:    data,
+		Errors:  errors,
 	})
 }

@@ -20,11 +20,15 @@ func JWTAuth() gin.HandlerFunc {
 			tokenString = strings.TrimPrefix(authHeader, "Bearer ")
 		} else {
 			var err error
-			tokenString, err = c.Cookie("token")
+			// Prefer documented cookie name; fallback to legacy cookie for compatibility.
+			tokenString, err = c.Cookie("ulam_access")
 			if err != nil {
-				utils.Error(c, http.StatusUnauthorized, "Missing Authorization token", nil)
-				c.Abort()
-				return
+				tokenString, err = c.Cookie("token")
+				if err != nil {
+					utils.Error(c, http.StatusUnauthorized, "Missing Authorization token", nil)
+					c.Abort()
+					return
+				}
 			}
 		}
 		secret := os.Getenv("JWT_SECRET")

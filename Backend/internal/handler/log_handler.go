@@ -1,8 +1,11 @@
 package handler
 
 import (
+	"encoding/csv"
 	"fmt"
 	"net/http"
+	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/petrushandika/one-log/internal/domain"
@@ -132,4 +135,48 @@ func (h *LogHandler) GetStatsOverview(c *gin.Context) {
 	}
 
 	utils.Success(c, http.StatusOK, "Stats retrieved successfully", stats)
+}
+
+func (h *LogHandler) GetActivitySummary(c *gin.Context) {
+	userID := c.GetUint("user_id")
+	summary, err := h.service.GetActivitySummary(userID)
+	if err != nil {
+		utils.Error(c, http.StatusInternalServerError, "Failed to load activity summary", err.Error())
+		return
+	}
+
+	utils.Success(c, http.StatusOK, "Activity summary retrieved successfully", summary)
+}
+
+// ExportCSV handles GET /api/v1/logs/export requests
+func (h *LogHandler) ExportCSV(c *gin.Context) {
+	sourceID := c.Query("source_id")
+	level := c.Query("level")
+	category := c.Query("category")
+	userID := c.GetUint("user_id")
+
+	logs, err := h.service.ExportLogs(sourceID, level, category, userID)
+	if err != nil {
+		utils.Error(c, http.StatusInternalServerError, "Failed to export logs", err.Error())
+		return
+	}
+
+	c.Header("Content-Type", "text/csv")
+	c.Header("Content-Disposition", `attachment; filename="logs.csv"`)
+	c.Header("Transfer-Encoding", "chunked")
+
+	w := csv.NewWriter(c.Writer)
+	defer w.Flush()
+
+	_ = w.Write([]string{"id", "source_id", "category", "level", "message", "created_at"})
+	for i := range logs {
+		_ = w.Write([]string{
+			strconv.FormatUint(uint64(logs[i].ID), 10),
+			logs[i].SourceID,
+			logs[i].Category,
+			logs[i].Level,
+			logs[i].Message,
+			logs[i].CreatedAt.UTC().Format(time.RFC3339),
+		})
+	}
 }

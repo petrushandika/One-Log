@@ -65,6 +65,31 @@ func (h *SourceHandler) GetByID(c *gin.Context) {
 	utils.Success(c, http.StatusOK, "Source retrieved successfully", source)
 }
 
+func (h *SourceHandler) Update(c *gin.Context) {
+	id := c.Param("id")
+	userID := c.GetUint("user_id")
+
+	var req domain.UpdateSourceRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.Error(c, http.StatusUnprocessableEntity, "Validation failed", []utils.ErrorDetail{
+			{Field: "body", Message: err.Error()},
+		})
+		return
+	}
+
+	source, err := h.service.UpdateSource(id, userID, req)
+	if err != nil {
+		if err.Error() == "source not found" {
+			utils.Error(c, http.StatusNotFound, "Source not found", nil)
+			return
+		}
+		utils.Error(c, http.StatusInternalServerError, "Failed to update source", err.Error())
+		return
+	}
+
+	utils.Success(c, http.StatusOK, "Source updated successfully", source)
+}
+
 func (h *SourceHandler) shouldBindJSON(c *gin.Context, req interface{}) error {
 	if err := c.ShouldBindJSON(req); err != nil {
 		utils.Error(c, http.StatusUnprocessableEntity, "Validation failed", []utils.ErrorDetail{

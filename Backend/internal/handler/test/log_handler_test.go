@@ -57,6 +57,14 @@ func (m *mockLogService) CheckBruteForce(ip string) (bool, error) {
 	return false, nil
 }
 
+func (m *mockLogService) GetActivitySummary(userID uint) (map[string]interface{}, error) {
+	return nil, nil
+}
+
+func (m *mockLogService) ExportLogs(sourceID string, level string, category string, userID uint) ([]domain.LogEntry, error) {
+	return nil, nil
+}
+
 func TestIngestLog_Success(t *testing.T) {
 	// Setup Ginkgo mode appropriately
 	gin.SetMode(gin.TestMode)
