@@ -1,8 +1,12 @@
 package service
 
 import (
+	"encoding/json"
+
 	"github.com/petrushandika/one-log/internal/domain"
 	"github.com/petrushandika/one-log/internal/repository"
+	"github.com/petrushandika/one-log/pkg/masking"
+	"gorm.io/datatypes"
 )
 
 type LogService interface {
@@ -20,6 +24,19 @@ func NewLogService(repo repository.LogRepository) LogService {
 }
 
 func (s *logService) IngestLog(req domain.IngestLogRequest, sourceID string) error {
+	// Apply Data Masking for PII into the free-form context
+	maskedContext := req.Context
+	if maskedContext != nil {
+		maskedContext = masking.MaskSensitiveData(maskedContext)
+	}
+
+	// Safely Marshal to JSONB datatypes
+	var contextRaw datatypes.JSON
+	if maskedContext != nil {
+		contextBytes, _ := json.Marshal(maskedContext)
+		contextRaw = datatypes.JSON(contextBytes)
+	}
+
 	// Business Logic
 	logEntry := domain.LogEntry{
 		SourceID:   sourceID, // Using SourceID injected from the API Key middleware
@@ -28,6 +45,7 @@ func (s *logService) IngestLog(req domain.IngestLogRequest, sourceID string) err
 		Message:    req.Message,
 		StackTrace: req.StackTrace,
 		IPAddress:  req.IPAddress,
+		Context:    contextRaw,
 	}
 
 	// Save to DB

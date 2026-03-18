@@ -32,12 +32,6 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	adminEmail := os.Getenv("ADMIN_EMAIL")
 	adminPassword := os.Getenv("ADMIN_PASSWORD")
 
-	// Default values if .env is missing
-	if adminEmail == "" {
-		adminEmail = "admin@ulam.io"
-		adminPassword = "adminpassword"
-	}
-
 	// Use constant time comparison to mitigate timing attacks on the login route
 	emailMatch := subtle.ConstantTimeCompare([]byte(req.Email), []byte(adminEmail)) == 1
 	passMatch := subtle.ConstantTimeCompare([]byte(req.Password), []byte(adminPassword)) == 1
@@ -49,9 +43,6 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 	// Create token (Valid for 24 hours)
 	secret := []byte(os.Getenv("JWT_SECRET"))
-	if len(secret) == 0 {
-		secret = []byte("mvp-super-secret-key-123") // Fallback
-	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"email": req.Email,

@@ -32,9 +32,9 @@ MVP berfokus pada **4 kapabilitas inti** yang memberikan nilai langsung tanpa ov
 | `POST /v1/logs` endpoint | 🔲 Todo | Accept JSON payload   |
 | API Key authentication   | 🔲 Todo | Per-source token      |
 | Request validation       | 🔲 Todo | Required fields check |
-| Async processing         | 🔲 Todo | Respond < 100ms       |
-| Background DB write      | 🔲 Todo | Via goroutine         |
-| PII Data Masking         | 🔲 Todo | Automatic sensor sensitive keys |
+| Async processing         | [x] | Respond < 100ms       |
+| Background DB write      | [x] | Via goroutine         |
+| PII Data Masking         | [x] | Automatic sensor sensitive keys |
 
 **Minimal Payload yang Diterima:**
 
@@ -126,10 +126,10 @@ MVP berfokus pada **4 kapabilitas inti** yang memberikan nilai langsung tanpa ov
 
 - [ ] Setup project Golang (Gin/Fiber)
 - [ ] Connect PostgreSQL dengan GORM
-- [ ] Auto-migrate schema `log_entries` & `sources`
-- [ ] Implementasi `POST /v1/logs` dengan token auth
-- [ ] Goroutine untuk async DB write
-- [ ] Unit test untuk ingestion endpoint
+- [x] Auto-migrate schema `log_entries` & `sources`
+- [x] Implementasi `POST /v1/logs` dengan token auth
+- [x] Goroutine untuk async DB write
+- [x] Unit test untuk ingestion endpoint
 
 **Deliverable**: `curl -X POST /v1/logs` berhasil menyimpan ke DB
 

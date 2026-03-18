@@ -29,7 +29,12 @@ func main() {
 		}
 	}
 
-	// 3. Initialize Database
+	// 3. Verify Required Secure Credentials
+	if os.Getenv("ADMIN_EMAIL") == "" || os.Getenv("ADMIN_PASSWORD") == "" || os.Getenv("JWT_SECRET") == "" {
+		log.Fatal("CRITICAL SECURITY ERROR: ADMIN_EMAIL, ADMIN_PASSWORD, or JWT_SECRET is missing from environment variables.")
+	}
+
+	// 4. Initialize Database
 	db := database.InitDB()
 
 	// Execute migration if the -migrate flag is set
