@@ -81,7 +81,7 @@ func (s *aiService) ManualAnalyzeLog(id uint) (*domain.LogEntry, error) {
 }
 
 func (s *aiService) generateAIInsight(logEntry *domain.LogEntry) (string, error) {
-	// Construct Context-Aware System Prompt 
+	// Construct Context-Aware System Prompt
 	systemPrompt := `You are an expert Security Analyst and System Forensics Engineer for ULAM (Unified Log & Activity Monitor).
 Your job is to read log data and provide a concise, human-readable analysis.
 Do not provide generic coding advice. Provide Root Cause Analysis and specific Mitigation steps.
@@ -90,7 +90,7 @@ CONTEXT AWARENESS:
 If level is CRITICAL or ERROR, provide urgency and 3 steps fixing.
 If level is INFO or WARN and Category is USER_ACTIVITY or AUTH_EVENT, this is mostly normal standard tracking. DO NOT suggest "Server shutdown" or panic. Describe what the user did objectively.
 `
-	
+
 	userMessage := fmt.Sprintf(
 		"Please analyze the following log:\nLevel: %s\nCategory: %s\nMessage: %s\nIP Address: %s\nContext: %s\nStack Trace: %s",
 		logEntry.Level,

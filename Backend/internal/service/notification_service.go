@@ -21,7 +21,7 @@ type notificationService struct {
 }
 
 func NewNotificationService() NotificationService {
-	// Simple memory-based debounce 
+	// Simple memory-based debounce
 	return &notificationService{
 		emailClient: *email.NewSMTPEmailService(),
 	}
