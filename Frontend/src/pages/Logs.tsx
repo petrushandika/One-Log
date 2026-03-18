@@ -5,6 +5,7 @@ import remarkGfm from 'remark-gfm';
 import { Filter, Search, ChevronRight, X, Sparkles, ChevronLeft, Download, ScrollText } from 'lucide-react';
 import SelectField from '../shared/components/SelectField';
 import { logsApi, sourcesApi } from '../shared/lib/api';
+import { categoryLabel } from '../shared/lib/utils';
 
 interface Log {
   id: number;
@@ -316,7 +317,7 @@ export default function Logs() {
                     <td className="px-6 py-4 text-xs font-mono text-zinc-500 whitespace-nowrap">
                       {new Date(log.created_at).toLocaleString()}
                     </td>
-                    <td className="px-6 py-4 text-xs text-zinc-400">{log.category}</td>
+                    <td className="px-6 py-4 text-xs text-zinc-400">{categoryLabel(log.category)}</td>
                     <td className="px-6 py-4">
                       <span className={`px-2 py-1 rounded-md text-xs font-semibold border ${LEVEL_STYLES[log.level] ?? LEVEL_STYLES.DEBUG}`}>
                         {log.level}
@@ -408,7 +409,7 @@ export default function Logs() {
                     {selectedLog.level}
                   </span>
                   <span className="text-xs text-zinc-400 bg-white/[0.03] px-2 py-1 rounded-lg">
-                    {selectedLog.category}
+                    {categoryLabel(selectedLog.category)}
                   </span>
                 </div>
                 <button

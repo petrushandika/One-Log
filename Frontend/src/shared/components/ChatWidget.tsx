@@ -12,14 +12,14 @@ interface Message {
 }
 
 const SUGGESTIONS = [
-  { icon: BarChart2,   text: 'Ada berapa ERROR hari ini?' },
-  { icon: ShieldAlert, text: 'Apa itu kategori AUDIT_TRAIL?' },
-  { icon: Activity,    text: 'Cara kirim PERFORMANCE log?' },
-  { icon: Cpu,         text: 'Bagaimana cara debug SYSTEM_ERROR?' },
+  { icon: BarChart2,   text: 'How many ERROR logs do I have today?' },
+  { icon: ShieldAlert, text: 'What is the AUDIT_TRAIL category?' },
+  { icon: Activity,    text: 'How do I send a PERFORMANCE log?' },
+  { icon: Cpu,         text: 'How do I debug a SYSTEM_ERROR?' },
 ];
 
 function now(): string {
-  return new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+  return new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 }
 
 function CopyableCode({ children }: { children: React.ReactNode }) {
@@ -155,12 +155,12 @@ export default function ChatWidget() {
 
     try {
       const { data } = await chatApi.send(text);
-      const reply = data?.data?.reply ?? 'Maaf, tidak ada respons.';
+      const reply = data?.data?.reply ?? 'No response received. Please try again.';
       setMessages((prev) => [...prev, { role: 'assistant', text: reply, time: now() }]);
     } catch {
       setMessages((prev) => [
         ...prev,
-        { role: 'assistant', text: '**Gagal terhubung.** Pastikan backend aktif dan `GROQ_API_KEY` terkonfigurasi.', time: now() },
+        { role: 'assistant', text: '**Connection failed.** Make sure the backend is running and `GROQ_API_KEY` is configured.', time: now() },
       ]);
     } finally {
       setIsLoading(false);
@@ -233,10 +233,10 @@ export default function ChatWidget() {
                       <div className="flex-1 min-w-0">
                         <div className="bg-white/4 border border-white/7 rounded-2xl rounded-tl-md px-4 py-3 overflow-hidden">
                           <p className="text-[13px] text-zinc-200 leading-relaxed wrap-break-word">
-                            Hai! 👋 Saya <span className="font-semibold text-purple-300">One Log AI</span>, asisten Anda untuk memantau log, error, dan performa sistem.
+                            Hi! 👋 I'm <span className="font-semibold text-purple-300">One Log AI</span>, your assistant for monitoring logs, errors, and system performance.
                           </p>
                           <p className="text-[13px] text-zinc-400 mt-1.5 leading-relaxed">
-                            Tanyakan apa saja tentang sistem Anda!
+                            Ask me anything about your system!
                           </p>
                         </div>
                         <p className="text-[10px] text-zinc-600 mt-1 ml-1">{now()}</p>
@@ -246,7 +246,7 @@ export default function ChatWidget() {
                     {/* Quick Questions */}
                     <div>
                       <p className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-2 px-1">
-                        Pertanyaan Cepat
+                        Quick Questions
                       </p>
                       <div className="space-y-2">
                         {SUGGESTIONS.map(({ icon: Icon, text }) => (
@@ -332,7 +332,7 @@ export default function ChatWidget() {
                     onChange={(e) => { setInput(e.target.value); resizeTextarea(); }}
                     onKeyDown={onKeyDown}
                     disabled={isLoading}
-                    placeholder="Tanya tentang log, error, performa..."
+                    placeholder="Ask about logs, errors, performance..."
                     className="flex-1 resize-none bg-transparent text-[13px] text-zinc-100 placeholder:text-zinc-600 focus:outline-none disabled:opacity-40 min-h-[22px] max-h-[96px] leading-relaxed self-center"
                     style={{ minHeight: '22px', maxHeight: '96px' }}
                   />
@@ -340,13 +340,13 @@ export default function ChatWidget() {
                     onClick={() => send()}
                     disabled={isLoading || !input.trim()}
                     className="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg bg-purple-600 hover:bg-purple-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-                    aria-label="Kirim"
+                    aria-label="Send"
                   >
                     <Send size={14} className="text-white" />
                   </button>
                 </div>
                 <p className="text-[10px] text-zinc-700 text-center mt-2">
-                  Enter kirim · Shift+Enter baris baru
+                  Enter to send · Shift+Enter for new line
                 </p>
               </div>
 

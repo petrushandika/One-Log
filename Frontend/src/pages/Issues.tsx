@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { BugPlay, ChevronLeft, ChevronRight, Filter, X, CheckCircle2, EyeOff, AlertTriangle, Clock, RefreshCw, BarChart3 } from 'lucide-react';
 import { issuesApi } from '../shared/lib/api';
 import SelectField from '../shared/components/SelectField';
+import { categoryLabel } from '../shared/lib/utils';
 
 interface Issue {
   fingerprint: string;
@@ -209,7 +210,7 @@ export default function Issues() {
                       <p className="text-sm text-zinc-200 truncate">{issue.message_sample}</p>
                       <div className="flex items-center gap-2 mt-1">
                         <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded border ${LEVEL_STYLES[issue.level] ?? 'text-zinc-400 border-zinc-500/20'}`}>{issue.level}</span>
-                        <span className="text-xs text-zinc-500">{issue.category}</span>
+                        <span className="text-xs text-zinc-500">{categoryLabel(issue.category)}</span>
                       </div>
                     </div>
                     <span className="text-sm font-semibold text-rose-400 shrink-0">{issue.occurrence_count.toLocaleString()}×</span>
@@ -317,7 +318,7 @@ export default function Issues() {
                         {issue.message_sample}
                       </p>
                       <p className="text-xs text-zinc-500 mt-0.5 font-mono truncate">
-                        {issue.fingerprint.slice(0, 16)}... · {issue.category}
+                        {issue.fingerprint.slice(0, 16)}... · {categoryLabel(issue.category)}
                       </p>
                     </td>
                     <td className="px-6 py-4">
@@ -446,7 +447,7 @@ export default function Issues() {
                       {selectedIssue.status}
                     </span>
                     <span className="text-xs text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded-md">
-                      {selectedIssue.category}
+                      {categoryLabel(selectedIssue.category)}
                     </span>
                   </div>
                   <p className="text-zinc-100 font-semibold leading-relaxed">{selectedIssue.message_sample}</p>

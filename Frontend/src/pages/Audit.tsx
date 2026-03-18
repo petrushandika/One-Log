@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { ShieldAlert, Search, ChevronLeft, ChevronRight, AlertTriangle, Info, ShieldCheck } from 'lucide-react';
 import { activityApi } from '../shared/lib/api';
 import SelectField from '../shared/components/SelectField';
+import { categoryLabel } from '../shared/lib/utils';
 
 interface ActivityLog {
   id: number;
@@ -144,7 +145,7 @@ export default function Audit() {
                     </td>
                     <td className="px-6 py-4">
                       <span className="text-xs font-semibold text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded-md">
-                        {item.category}
+                        {categoryLabel(item.category)}
                       </span>
                     </td>
                     <td className="px-6 py-4">
