@@ -86,7 +86,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	// Set documented httpOnly cookies (hybrid: keep legacy cookie for compatibility).
 	// NOTE: secure flag should be true in production behind HTTPS.
 	c.SetCookie("ulam_access", accessTokenString, 3600*24, "/", "", false, true)
-	c.SetCookie("ulam_refresh", refreshTokenString, 3600*24*7, "/api/v1/auth/refresh", "", false, true)
+	c.SetCookie("ulam_refresh", refreshTokenString, 3600*24*7, "/api/auth/refresh", "", false, true)
 	c.SetCookie("token", accessTokenString, 3600*24, "/", "", false, true) // legacy
 
 	utils.Success(c, http.StatusOK, "Login successful", gin.H{
@@ -146,7 +146,7 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 func (h *AuthHandler) Logout(c *gin.Context) {
 	// Clear cookies by setting MaxAge<0
 	c.SetCookie("ulam_access", "", -1, "/", "", false, true)
-	c.SetCookie("ulam_refresh", "", -1, "/api/v1/auth/refresh", "", false, true)
+	c.SetCookie("ulam_refresh", "", -1, "/api/auth/refresh", "", false, true)
 	c.SetCookie("token", "", -1, "/", "", false, true) // legacy
 	utils.Success(c, http.StatusOK, "Logged out successfully", nil)
 }

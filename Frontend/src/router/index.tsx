@@ -3,6 +3,7 @@ import Overview from '../pages/Overview';
 import Logs from '../pages/Logs';
 import Sources from '../pages/Sources';
 import Audit from '../pages/Audit';
+import Issues from '../pages/Issues';
 import Login from '../pages/Login';
 import ProtectedRoute from '../shared/components/ProtectedRoute';
 import { Terminal } from 'lucide-react';
@@ -34,6 +35,7 @@ export const router = createBrowserRouter([
       { path: 'logs', element: <Logs /> },
       { path: 'sources', element: <Sources /> },
       { path: 'audit', element: <Audit /> },
+      { path: 'issues', element: <Issues /> },
     ],
   },
   {

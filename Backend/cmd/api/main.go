@@ -101,7 +101,7 @@ func main() {
 		utils.Success(c, http.StatusOK, "System is healthy", gin.H{"app": "ULAM API"})
 	})
 
-	api := r.Group("/api/v1")
+	api := r.Group("/api")
 	{
 		// Public (no auth) status page data
 		api.GET("/status", statusHandler.PublicStatus)

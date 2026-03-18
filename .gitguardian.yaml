@@ -1,0 +1,18 @@
+version: 2
+
+# Suppress GitGuardian false positives for dev-only seed keys used in historical commits.
+# These patterns are dummy/placeholder values intentionally used in database seed files
+# for local development and have never been real API keys.
+ignore-matches:
+  - match: "ulam_live_auth_98372"
+    name: "historical-dev-seed-key-auth"
+  - match: "ulam_live_gate_87413"
+    name: "historical-dev-seed-key-gate"
+  - match: "ulam_live_db_24354"
+    name: "historical-dev-seed-key-db"
+  - match: "dev_auth_svc_001"
+    name: "dev-seed-key-auth"
+  - match: "dev_api_gw_001"
+    name: "dev-seed-key-gateway"
+  - match: "dev_db_analytics_001"
+    name: "dev-seed-key-analytics"

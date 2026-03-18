@@ -257,16 +257,17 @@ src/
 │       └── level-color.ts        ← Map level → Tailwind color class
 │
 ├── pages/                       ← Halaman (thin layer, assembles features)
-│   ├── LoginPage.tsx
-│   ├── OverviewPage.tsx
-│   ├── LogsPage.tsx
-│   ├── LogDetailPage.tsx
-│   └── SourcesPage.tsx
+│   ├── Login.tsx
+│   ├── Overview.tsx             ← Stats dashboard (live data)
+│   ├── Logs.tsx                 ← Log explorer + AI analysis + CSV export
+│   ├── Issues.tsx               ← Error grouping tracker (Phase 5)
+│   ├── Sources.tsx              ← Source management
+│   └── Audit.tsx                ← Audit trail (Phase 2)
 │
 ├── router/
-│   └── index.tsx                ← React Router v7 routes + auth guard
+│   └── index.tsx                ← React Router routes + ProtectedRoute guard
 │
-├── App.tsx
+├── App.tsx                      ← Minimal (routing handled by main.tsx)
 └── main.tsx
 ```
 
@@ -352,10 +353,18 @@ services:
     environment:
       - DATABASE_URL
       - JWT_SECRET
-      - SMTP_HOST
-      - SMTP_USER
-      - SMTP_PASS
+      - MAIL_HOST
+      - MAIL_PORT
+      - MAIL_USER
+      - MAIL_PASSWORD
+      - MAIL_FROM
       - ALERT_EMAIL
+      - GROQ_API_KEY
+      - AI_MODEL
+      - ADMIN_EMAIL
+      - ADMIN_PASSWORD
+      - WEBHOOK_URL
+      - CONFIG_ENCRYPTION_KEY
     depends_on: [postgres]
     restart: unless-stopped
 
@@ -384,18 +393,25 @@ volumes:
 
 ## Environment Variables
 
-| Variable       | Layer    | Description                              |
-| -------------- | -------- | ---------------------------------------- |
-| `DATABASE_URL` | Backend  | `postgres://user:pass@host:5432/dbname`  |
-| `JWT_SECRET`   | Backend  | Random 32+ char string untuk signing JWT |
-| `SMTP_HOST`    | Backend  | `smtp.gmail.com`                         |
-| `SMTP_PORT`    | Backend  | `587`                                    |
-| `SMTP_USER`    | Backend  | Email pengirim                           |
-| `SMTP_PASS`    | Backend  | App Password Gmail                       |
-| `ALERT_EMAIL`  | Backend  | Email penerima notifikasi (admin)        |
-| `GROQ_API_KEY` | Backend  | API Key dari Groq Console                |
-| `SERVER_PORT`  | Backend  | Default `8080`                           |
-| `VITE_API_URL` | Frontend | `https://api.ulam.your-domain.com`       |
+| Variable                 | Layer    | Description                                              |
+| ------------------------ | -------- | -------------------------------------------------------- |
+| `DATABASE_URL`           | Backend  | `postgres://user:pass@host:5432/dbname`                  |
+| `JWT_SECRET`             | Backend  | Random 32+ char string untuk signing JWT                 |
+| `MAIL_HOST`              | Backend  | SMTP host, e.g. `smtp.gmail.com`                         |
+| `MAIL_PORT`              | Backend  | SMTP port, e.g. `587`                                    |
+| `MAIL_USER`              | Backend  | SMTP username / email pengirim                           |
+| `MAIL_PASSWORD`          | Backend  | SMTP App Password                                        |
+| `MAIL_FROM`              | Backend  | From address, e.g. `noreply@onelog.com`                  |
+| `ALERT_EMAIL`            | Backend  | Email penerima notifikasi (admin)                        |
+| `GROQ_API_KEY`           | Backend  | API Key dari Groq Console                                |
+| `AI_MODEL`               | Backend  | Groq model ID, e.g. `llama3-8b-8192`                     |
+| `ADMIN_EMAIL`            | Backend  | Email default admin saat seed, default `admin@onelog.com`|
+| `ADMIN_PASSWORD`         | Backend  | Password default admin saat seed, default `123456`       |
+| `ADMIN_NAME`             | Backend  | Display name default admin, default `Administrator`      |
+| `WEBHOOK_URL`            | Backend  | Outgoing webhook URL untuk notifikasi generic            |
+| `CONFIG_ENCRYPTION_KEY`  | Backend  | 32-byte hex key untuk enkripsi secret configs            |
+| `SERVER_PORT`            | Backend  | Default `8080`                                           |
+| `VITE_API_URL`           | Frontend | `http://localhost:8080/api` (dev) atau URL production    |
 
 ---
 
