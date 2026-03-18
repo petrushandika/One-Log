@@ -10,7 +10,7 @@
 
 ## ✅ Fase 1 — Core (MVP)
 
-**Status**: In Progress
+**Status**: Stable
 
 Fondasi sistem: terima log, simpan, tampilkan, dan notifikasi.
 
@@ -37,13 +37,13 @@ Fondasi sistem: terima log, simpan, tampilkan, dan notifikasi.
 
 ### Frontend
 
-- [ ] Setup React 19 + Vite 7 + Tailwind v4 (Feature-Based structure)
-- [ ] Login page + JWT session
-- [ ] Overview dashboard — stats cards
-- [ ] Log Table + filter (source, level, category, date)
-- [ ] Log Detail modal — JSON viewer + stack trace
-- [ ] **AI "Analyze" Button** — Manual trigger on log selection
-- [ ] Sources Management page
+- [x] Setup React 19 + Vite 7 + Tailwind v4 (Feature-Based structure)
+- [x] Login page + JWT session
+- [x] Overview dashboard — stats cards
+- [x] Log Table + filter (source, level, category, date)
+- [x] Log Detail modal — JSON viewer + stack trace
+- [x] **AI "Analyze" Button** — Manual trigger on log selection
+- [x] Sources Management page
 
 ### Infra
 

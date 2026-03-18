@@ -23,6 +23,11 @@ migrate:
 	# This will trigger the AutoMigrate in your Go code
 	cd $(BACKEND_DIR) && go run cmd/api/main.go --migrate
 
+# 🗄️ Database Migration (SQL, controlled)
+migrate-sql:
+	@echo "Running SQL migrations with goose..."
+	cd $(BACKEND_DIR) && goose -dir migrations postgres "$$DATABASE_URL" up
+
 # 🔨 Build All
 build:
 	@echo "Building applications..."
