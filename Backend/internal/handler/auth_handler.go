@@ -31,7 +31,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 	adminEmail := os.Getenv("ADMIN_EMAIL")
 	adminPassword := os.Getenv("ADMIN_PASSWORD")
-	
+
 	// Default values if .env is missing
 	if adminEmail == "" {
 		adminEmail = "admin@ulam.io"

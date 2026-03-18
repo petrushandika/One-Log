@@ -49,7 +49,7 @@ func (h *SourceHandler) GetAll(c *gin.Context) {
 func (h *SourceHandler) GetByID(c *gin.Context) {
 	id := c.Param("id")
 	source, err := h.service.GetSourceByID(id)
-	
+
 	if err != nil {
 		if err.Error() == "source not found" {
 			utils.Error(c, http.StatusNotFound, "Source not found", nil)
@@ -75,7 +75,7 @@ func (h *SourceHandler) shouldBindJSON(c *gin.Context, req interface{}) error {
 func (h *SourceHandler) RotateKey(c *gin.Context) {
 	id := c.Param("id")
 	rawAPIKey, err := h.service.RotateAPIKey(id)
-	
+
 	if err != nil {
 		if err.Error() == "source not found" {
 			utils.Error(c, http.StatusNotFound, "Source not found", nil)

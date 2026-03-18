@@ -13,7 +13,7 @@ import (
 func APIKeyAuth(repo repository.SourceRepository) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		apiKey := c.GetHeader("X-API-Key")
-		
+
 		// Fallback checking Authorization header just in case "Bearer <token>" is passed
 		if apiKey == "" {
 			authHeader := c.GetHeader("Authorization")
@@ -47,7 +47,7 @@ func APIKeyAuth(repo repository.SourceRepository) gin.HandlerFunc {
 
 		// Inject Source information into Context (so the handler knows who owns this log)
 		c.Set("source_id", source.ID)
-		
+
 		c.Next()
 	}
 }

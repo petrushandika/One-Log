@@ -10,7 +10,6 @@ import (
 	"github.com/petrushandika/one-log/pkg/utils"
 )
 
-
 type LogHandler struct {
 	service service.LogService
 }
@@ -39,7 +38,6 @@ func (h *LogHandler) Ingest(c *gin.Context) {
 		utils.Error(c, http.StatusInternalServerError, "Failed to ingest log", err.Error())
 		return
 	}
-
 
 	utils.Success(c, http.StatusAccepted, "Log ingested successfully", nil)
 }

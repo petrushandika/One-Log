@@ -63,4 +63,3 @@ func (s *logService) GetLogs(limit int, page int, sourceID string, level string)
 func (s *logService) GetLogByID(id uint) (*domain.LogEntry, error) {
 	return s.repo.FindByID(id)
 }
-

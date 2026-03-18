@@ -56,4 +56,3 @@ func (r *logRepository) FindByID(id uint) (*domain.LogEntry, error) {
 	}
 	return &log, nil
 }
-
