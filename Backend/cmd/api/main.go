@@ -20,6 +20,7 @@ import (
 func main() {
 	// 1. Setup Arguments (Check if -migrate flag is provided during run)
 	migrateFlag := flag.Bool("migrate", false, "Run database migrations and exit")
+	seedFlag := flag.Bool("seed", false, "Run database seeders and exit")
 	flag.Parse()
 
 	// 2. Load Environment file (.env)
@@ -41,6 +42,11 @@ func main() {
 	// Execute migration if the -migrate flag is set
 	if *migrateFlag {
 		database.Migrate(db)
+		return
+	}
+
+	if *seedFlag {
+		database.Seed(db)
 		return
 	}
 

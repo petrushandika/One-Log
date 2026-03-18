@@ -1,0 +1,83 @@
+package database
+
+import (
+	"log"
+
+	"github.com/petrushandika/one-log/internal/domain"
+	"gorm.io/gorm"
+)
+
+// Seed populates the database with initial dummy data layout sets setups.
+func Seed(db *gorm.DB) {
+	log.Println("Database seeding started...")
+
+	// 1. Create Dummy Sources
+	sources := []domain.Source{
+		{
+			Name:      "Authentication Service",
+			APIKey:    "ulam_live_auth_98372",
+			HealthURL: "https://auth.sample.com/health",
+			Status:    "ONLINE",
+		},
+		{
+			Name:      "API Gateway",
+			APIKey:    "ulam_live_gate_87413",
+			HealthURL: "https://gateway.sample.com/health",
+			Status:    "ONLINE",
+		},
+		{
+			Name:      "Database Analytics",
+			APIKey:    "ulam_live_db_24354",
+			HealthURL: "https://db.sample.com/health",
+			Status:    "OFFLINE",
+		},
+	}
+
+	for _, src := range sources {
+		// Check if source already exists to avoid duplicates node layout triggers setups configurations triggers sets
+		var count int64
+		db.Model(&domain.Source{}).Where("name = ?", src.Name).Count(&count)
+		if count == 0 {
+			if err := db.Create(&src).Error; err != nil {
+				log.Printf("Failed to create source %s: %v", src.Name, err)
+			} else {
+				log.Printf("Created source %s with ID %s", src.Name, src.ID)
+
+				// 2. Create Dummy Log Entries for this Source triggers sets setups
+				dummyLogs := []domain.LogEntry{
+					{
+						SourceID:   src.ID,
+						Category:   "SYSTEM_ERROR",
+						Level:      "ERROR",
+						Message:    "Database connection pool exhausted",
+						StackTrace: "main.connectDB() at db.go:45\ngoroutine 1 [running]...",
+					},
+					{
+						SourceID:   src.ID,
+						Category:   "SECURITY",
+						Level:      "CRITICAL",
+						Message:    "Brute force attack detected from IP 192.168.1.1",
+						StackTrace: "",
+					},
+					{
+						SourceID:   src.ID,
+						Category:   "USER_ACTIVITY",
+						Level:      "INFO",
+						Message:    "User (id: usr_123) logged in successfully",
+						StackTrace: "",
+					},
+				}
+
+				for _, l := range dummyLogs {
+					if err := db.Create(&l).Error; err != nil {
+						log.Printf("Failed to create log for source %s: %v", src.Name, err)
+					}
+				}
+			}
+		} else {
+			log.Printf("Source %s already exists, skipping...", src.Name)
+		}
+	}
+
+	log.Println("Database seeding completed successfully!")
+}
