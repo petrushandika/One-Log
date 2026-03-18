@@ -33,7 +33,7 @@ func (w *UptimeWorker) Start() {
 }
 
 func (w *UptimeWorker) runCheck() {
-	sources, err := w.sourceRepo.FindAll()
+	sources, err := w.sourceRepo.FindAll(0)
 	if err != nil {
 		fmt.Printf("[UptimeWorker] Error fetching sources: %v\n", err)
 		return

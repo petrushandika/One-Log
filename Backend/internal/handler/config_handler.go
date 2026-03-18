@@ -9,11 +9,12 @@ import (
 )
 
 type ConfigHandler struct {
-	service service.ConfigService
+	service   service.ConfigService
+	sourceSvc service.SourceService
 }
 
-func NewConfigHandler(s service.ConfigService) *ConfigHandler {
-	return &ConfigHandler{service: s}
+func NewConfigHandler(s service.ConfigService, sourceSvc service.SourceService) *ConfigHandler {
+	return &ConfigHandler{service: s, sourceSvc: sourceSvc}
 }
 
 type saveConfigRequest struct {
@@ -24,6 +25,14 @@ type saveConfigRequest struct {
 
 func (h *ConfigHandler) Save(c *gin.Context) {
 	sourceID := c.Param("id")
+	userID := c.GetUint("user_id")
+
+	// Verify Ownership
+	if _, err := h.sourceSvc.GetSourceByID(sourceID, userID); err != nil {
+		utils.Error(c, http.StatusNotFound, "Source not found or access denied", "")
+		return
+	}
+
 	var req saveConfigRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		utils.Error(c, http.StatusBadRequest, "Invalid request body", err.Error())
@@ -40,6 +49,14 @@ func (h *ConfigHandler) Save(c *gin.Context) {
 
 func (h *ConfigHandler) GetBySource(c *gin.Context) {
 	sourceID := c.Param("id")
+	userID := c.GetUint("user_id")
+
+	// Verify Ownership
+	if _, err := h.sourceSvc.GetSourceByID(sourceID, userID); err != nil {
+		utils.Error(c, http.StatusNotFound, "Source not found or access denied", "")
+		return
+	}
+
 	configs, err := h.service.GetConfigsBySource(sourceID)
 	if err != nil {
 		utils.Error(c, http.StatusInternalServerError, "Failed to retrieve configs", err.Error())

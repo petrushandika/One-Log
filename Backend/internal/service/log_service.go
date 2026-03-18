@@ -13,10 +13,10 @@ import (
 
 type LogService interface {
 	IngestLog(req domain.IngestLogRequest, sourceID string) error
-	GetLogs(limit int, page int, sourceID string, level string, category string) ([]domain.LogEntry, int64, error)
+	GetLogs(limit int, page int, sourceID string, level string, category string, userID uint) ([]domain.LogEntry, int64, error)
 	GetLogByID(id uint) (*domain.LogEntry, error)
 	ManualAnalyzeLog(id uint) (*domain.LogEntry, error)
-	GetStatsOverview() (map[string]interface{}, error)
+	GetStatsOverview(userID uint) (map[string]interface{}, error)
 	CheckBruteForce(ip string) (bool, error)
 }
 
@@ -92,7 +92,7 @@ func (s *logService) IngestLog(req domain.IngestLogRequest, sourceID string) err
 	return nil
 }
 
-func (s *logService) GetLogs(limit int, page int, sourceID string, level string, category string) ([]domain.LogEntry, int64, error) {
+func (s *logService) GetLogs(limit int, page int, sourceID string, level string, category string, userID uint) ([]domain.LogEntry, int64, error) {
 	if limit <= 0 {
 		limit = 20
 	}
@@ -101,7 +101,7 @@ func (s *logService) GetLogs(limit int, page int, sourceID string, level string,
 	}
 	offset := (page - 1) * limit
 
-	return s.repo.FindAll(limit, offset, sourceID, level, category)
+	return s.repo.FindAll(limit, offset, sourceID, level, category, userID)
 }
 
 func (s *logService) GetLogByID(id uint) (*domain.LogEntry, error) {
@@ -112,8 +112,8 @@ func (s *logService) ManualAnalyzeLog(id uint) (*domain.LogEntry, error) {
 	return s.aiSvc.ManualAnalyzeLog(id)
 }
 
-func (s *logService) GetStatsOverview() (map[string]interface{}, error) {
-	return s.repo.GetStatsOverview()
+func (s *logService) GetStatsOverview(userID uint) (map[string]interface{}, error) {
+	return s.repo.GetStatsOverview(userID)
 }
 
 func (s *logService) CheckBruteForce(ip string) (bool, error) {

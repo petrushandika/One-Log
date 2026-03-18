@@ -63,11 +63,11 @@ func main() {
 	sourceService := service.NewSourceService(sourceRepo)
 	sourceHandler := handler.NewSourceHandler(sourceService)
 
-	authHandler := handler.NewAuthHandler(logService)
+	authHandler := handler.NewAuthHandler(db, logService)
 
 	configRepo := repository.NewConfigRepository(db)
 	configService := service.NewConfigService(configRepo)
-	configHandler := handler.NewConfigHandler(configService)
+	configHandler := handler.NewConfigHandler(configService, sourceService)
 
 	// 5. Start Background Workers
 	retentionWorker := worker.NewRetentionWorker(logRepo, 30) // 30 days retention

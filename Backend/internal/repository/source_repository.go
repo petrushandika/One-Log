@@ -10,8 +10,8 @@ import (
 type SourceRepository interface {
 	Create(source *domain.Source) error
 	FindByAPIKey(apiKey string) (*domain.Source, error)
-	FindAll() ([]domain.Source, error)
-	FindByID(id string) (*domain.Source, error)
+	FindAll(userID uint) ([]domain.Source, error)
+	FindByID(id string, userID uint) (*domain.Source, error)
 	Update(source *domain.Source) error
 }
 
@@ -39,15 +39,19 @@ func (r *sourceRepository) FindByAPIKey(apiKey string) (*domain.Source, error) {
 	return &source, nil
 }
 
-func (r *sourceRepository) FindAll() ([]domain.Source, error) {
+func (r *sourceRepository) FindAll(userID uint) ([]domain.Source, error) {
 	var sources []domain.Source
-	err := r.db.Order("created_at desc").Find(&sources).Error
+	query := r.db.Order("created_at desc")
+	if userID > 0 {
+		query = query.Where("user_id = ?", userID)
+	}
+	err := query.Find(&sources).Error
 	return sources, err
 }
 
-func (r *sourceRepository) FindByID(id string) (*domain.Source, error) {
+func (r *sourceRepository) FindByID(id string, userID uint) (*domain.Source, error) {
 	var source domain.Source
-	err := r.db.Where("id = ?", id).First(&source).Error
+	err := r.db.Where("id = ? AND user_id = ?", id, userID).First(&source).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
