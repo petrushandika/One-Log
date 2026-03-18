@@ -10,6 +10,8 @@ type LogRepository interface {
 	Create(log *domain.LogEntry) error
 	FindAll(limit int, offset int, sourceID, level string) ([]domain.LogEntry, int64, error)
 	FindByID(id uint) (*domain.LogEntry, error)
+	Update(log *domain.LogEntry) error
+	DeleteOlderThan(days int) error
 }
 
 // Struct private for implementation
@@ -55,4 +57,14 @@ func (r *logRepository) FindByID(id uint) (*domain.LogEntry, error) {
 		return nil, err
 	}
 	return &log, nil
+}
+
+func (r *logRepository) Update(log *domain.LogEntry) error {
+	return r.db.Save(log).Error
+}
+
+func (r *logRepository) DeleteOlderThan(days int) error {
+	// Standard Retention: 30 days. Criticals can be exempted or managed separately.
+	// For MVP, we delete all logs older than specified days.
+	return r.db.Where("created_at < NOW() - INTERVAL '1 day' * ?", days).Delete(&domain.LogEntry{}).Error
 }

@@ -100,3 +100,22 @@ func (h *LogHandler) GetByID(c *gin.Context) {
 
 	utils.Success(c, http.StatusOK, "Log retrieved successfully", logEntry)
 }
+
+// Analyze handles POST /api/v1/logs/:id/analyze requests
+func (h *LogHandler) Analyze(c *gin.Context) {
+	idParam := c.Param("id")
+	var id uint
+	_, err := fmt.Sscanf(idParam, "%d", &id)
+	if err != nil {
+		utils.Error(c, http.StatusBadRequest, "Invalid log ID format", nil)
+		return
+	}
+
+	logEntry, err := h.service.ManualAnalyzeLog(id)
+	if err != nil {
+		utils.Error(c, http.StatusInternalServerError, "Failed to analyze log with AI", err.Error())
+		return
+	}
+
+	utils.Success(c, http.StatusOK, "AI Analysis completed", logEntry)
+}

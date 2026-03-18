@@ -41,6 +41,14 @@ func (m *mockLogService) GetLogByID(id uint) (*domain.LogEntry, error) {
 	}, nil
 }
 
+func (m *mockLogService) ManualAnalyzeLog(id uint) (*domain.LogEntry, error) {
+	return &domain.LogEntry{
+		ID:        id,
+		Level:     "CRITICAL",
+		AIInsight: datatypes.JSON(`{"analysis":"mock insight"}`),
+	}, nil
+}
+
 func TestIngestLog_Success(t *testing.T) {
 	// Setup Ginkgo mode appropriately
 	gin.SetMode(gin.TestMode)

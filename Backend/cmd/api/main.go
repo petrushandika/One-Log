@@ -12,6 +12,7 @@ import (
 	"github.com/petrushandika/one-log/internal/middleware"
 	"github.com/petrushandika/one-log/internal/repository"
 	"github.com/petrushandika/one-log/internal/service"
+	"github.com/petrushandika/one-log/internal/worker"
 	"github.com/petrushandika/one-log/pkg/database"
 	"github.com/petrushandika/one-log/pkg/utils"
 )
@@ -45,14 +46,22 @@ func main() {
 
 	// 4. Dependency Injection (Wire all layers)
 	logRepo := repository.NewLogRepository(db)
-	logService := service.NewLogService(logRepo)
+
+	notifySvc := service.NewNotificationService()
+	aiSvc := service.NewAIService(logRepo)
+
+	logService := service.NewLogService(logRepo, notifySvc, aiSvc)
 	logHandler := handler.NewLogHandler(logService)
 
 	sourceRepo := repository.NewSourceRepository(db)
 	sourceService := service.NewSourceService(sourceRepo)
 	sourceHandler := handler.NewSourceHandler(sourceService)
 
-	authHandler := handler.NewAuthHandler()
+	authHandler := handler.NewAuthHandler(logService)
+
+	// 5. Start Background Workers
+	retentionWorker := worker.NewRetentionWorker(logRepo, 30) // 30 days retention
+	retentionWorker.Start()
 
 	// 5. Setup Router (Gin Framework)
 	port := os.Getenv("SERVER_PORT")
@@ -94,6 +103,7 @@ func main() {
 			// Logs
 			admin.GET("/logs", logHandler.GetAll)
 			admin.GET("/logs/:id", logHandler.GetByID)
+			admin.POST("/logs/:id/analyze", logHandler.Analyze)
 
 			// Sources
 			admin.POST("/sources", sourceHandler.Create)

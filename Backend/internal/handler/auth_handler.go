@@ -9,15 +9,17 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/petrushandika/one-log/internal/domain"
+	"github.com/petrushandika/one-log/internal/service"
 	"github.com/petrushandika/one-log/pkg/utils"
 )
 
 // AuthHandler handles the admin login process.
-// In this MVP version, credentials are only taken from environment variables for simplicity.
-type AuthHandler struct{}
+type AuthHandler struct {
+	logSvc service.LogService
+}
 
-func NewAuthHandler() *AuthHandler {
-	return &AuthHandler{}
+func NewAuthHandler(logSvc service.LogService) *AuthHandler {
+	return &AuthHandler{logSvc: logSvc}
 }
 
 func (h *AuthHandler) Login(c *gin.Context) {
@@ -37,6 +39,15 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	passMatch := subtle.ConstantTimeCompare([]byte(req.Password), []byte(adminPassword)) == 1
 
 	if !emailMatch || !passMatch {
+		// Log failed attempt audit trail
+		_ = h.logSvc.IngestLog(domain.IngestLogRequest{
+			Category:  "AUTH_EVENT",
+			Level:     "WARN",
+			Message:   "Failed login attempt for admin panel",
+			IPAddress: c.ClientIP(),
+			Context:   map[string]interface{}{"attempted_email": req.Email},
+		}, "00000000-0000-0000-0000-000000000001") // Mock ULAM Internal UUID
+
 		utils.Error(c, http.StatusUnauthorized, "Invalid credentials", nil)
 		return
 	}
@@ -54,6 +65,15 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		utils.Error(c, http.StatusInternalServerError, "Failed to generate token", err.Error())
 		return
 	}
+
+	// Log successful login audit trail
+	_ = h.logSvc.IngestLog(domain.IngestLogRequest{
+		Category:  "AUTH_EVENT",
+		Level:     "INFO",
+		Message:   "Admin logged in successfully",
+		IPAddress: c.ClientIP(),
+		Context:   map[string]interface{}{"email": req.Email},
+	}, "00000000-0000-0000-0000-000000000001")
 
 	utils.Success(c, http.StatusOK, "Login successful", gin.H{
 		"token": tokenString,

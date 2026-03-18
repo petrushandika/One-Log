@@ -29,9 +29,9 @@ MVP berfokus pada **4 kapabilitas inti** yang memberikan nilai langsung tanpa ov
 
 | Sub-Feature              | Status  | Notes                 |
 | ------------------------ | ------- | --------------------- |
-| `POST /v1/logs` endpoint | 🔲 Todo | Accept JSON payload   |
-| API Key authentication   | 🔲 Todo | Per-source token      |
-| Request validation       | 🔲 Todo | Required fields check |
+| `POST /v1/logs` endpoint | [x] | Accept JSON payload   |
+| API Key authentication   | [x] | Per-source token      |
+| Request validation       | [x] | Required fields check |
 | Async processing         | [x] | Respond < 100ms       |
 | Background DB write      | [x] | Via goroutine         |
 | PII Data Masking         | [x] | Automatic sensor sensitive keys |
@@ -55,11 +55,11 @@ MVP berfokus pada **4 kapabilitas inti** yang memberikan nilai langsung tanpa ov
 
 | Sub-Feature                        | Status  | Notes                     |
 | ---------------------------------- | ------- | ------------------------- |
-| PostgreSQL setup                   | 🔲 Todo | Docker atau cloud         |
-| `log_entries` table via GORM       | 🔲 Todo | Auto-migrate              |
-| `sources` table                    | 🔲 Todo | Simpan API key per source |
-| JSONB context field                | 🔲 Todo | Flexible metadata         |
-| Indexing on source_id + created_at | 🔲 Todo | Query performance         |
+| PostgreSQL setup                   | [x] | Docker atau cloud         |
+| `log_entries` table via GORM       | [x] | Auto-migrate              |
+| `sources` table                    | [x] | Simpan API key per source |
+| JSONB context field                | [x] | Flexible metadata         |
+| Indexing on source_id + created_at | [x] | Query performance         |
 
 ---
 
@@ -82,12 +82,12 @@ MVP berfokus pada **4 kapabilitas inti** yang memberikan nilai langsung tanpa ov
 
 | Sub-Feature                     | Status  | Notes                   |
 | ------------------------------- | ------- | ----------------------- |
-| SMTP config (Gmail)             | 🔲 Todo | Via env variables       |
-| Trigger on ERROR/CRITICAL       | 🔲 Todo | Inside goroutine        |
-| Email HTML template             | 🔲 Todo | Source + message + link |
-| Throttling (5 menit/error type) | 🔲 Todo | In-memory map           |
-| Log Retention Worker            | 🔲 Todo | Auto-cleanup > 30 days  |
-| AI Insight Engine               | 🔲 Todo | Manual & Auto analysis via Groq API |
+| SMTP config (Gmail)             | [x] | Via env variables       |
+| Trigger on ERROR/CRITICAL       | [x] | Inside goroutine        |
+| Email HTML template             | [x] | Source + message + link |
+| Throttling (5 menit/error type) | [x] | In-memory map           |
+| Log Retention Worker            | [x] | Auto-cleanup > 30 days  |
+| AI Insight Engine               | [x] | Manual & Auto analysis via Groq API |
 
 ---
 
@@ -124,8 +124,8 @@ MVP berfokus pada **4 kapabilitas inti** yang memberikan nilai langsung tanpa ov
 
 **Goal**: API bisa menerima dan menyimpan log
 
-- [ ] Setup project Golang (Gin/Fiber)
-- [ ] Connect PostgreSQL dengan GORM
+- [x] Setup project Golang (Gin/Fiber)
+- [x] Connect PostgreSQL dengan GORM
 - [x] Auto-migrate schema `log_entries` & `sources`
 - [x] Implementasi `POST /v1/logs` dengan token auth
 - [x] Goroutine untuk async DB write
@@ -154,9 +154,9 @@ MVP berfokus pada **4 kapabilitas inti** yang memberikan nilai langsung tanpa ov
 
 **Goal**: Sistem berjalan end-to-end dengan notifikasi
 
-- [ ] SMTP email integration
-- [ ] Email template HTML
-- [ ] Throttling logic (in-memory)
+- [x] SMTP email integration
+- [x] Email template HTML
+- [x] Throttling logic (in-memory)
 - [x] `POST /api/sources` untuk manage source API keys
 - [x] `POST /api/sources/:id/rotate-key` untuk rotate API keys
 - [x] Error handling & logging di backend sendiri

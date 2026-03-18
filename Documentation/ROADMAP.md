@@ -18,22 +18,22 @@ Fondasi sistem: terima log, simpan, tampilkan, dan notifikasi.
 
 - [x] Setup project Golang + Gin
 - [x] PostgreSQL + GORM AutoMigrate
-- [ ] `POST /api/ingest` — ingestion endpoint + API Key auth
-- [ ] Async goroutine untuk DB write (response < 100ms)
-- [ ] Validasi payload (category, level enum)
-- [ ] JWT Auth untuk admin dashboard
-- [ ] `GET /api/logs` + filter + pagination
-- [ ] `GET /api/logs/:id`
-- [ ] `GET/POST /api/sources` — Source management
-- [ ] `POST /api/sources/:slug/rotate-key`
-- [ ] `GET /api/stats/overview`
+- [x] `POST /api/ingest` — ingestion endpoint + API Key auth
+- [x] Async goroutine untuk DB write (response < 100ms)
+- [x] Validasi payload (category, level enum)
+- [x] JWT Auth untuk admin dashboard
+- [x] `GET /api/logs` + filter + pagination
+- [x] `GET /api/logs/:id`
+- [x] `GET/POST /api/sources` — Source management
+- [x] `POST /api/sources/:slug/rotate-key`
+- [x] `GET /api/stats/overview`
 
 ### Notification
 
-- [ ] SMTP email integration
-- [ ] HTML email template
-- [ ] Throttle in-memory (5 menit per error type)
-- [ ] **AI Insight Integration (Groq API)** — Auto analysis for CRITICAL logs
+- [x] SMTP email integration
+- [x] HTML email template
+- [x] Throttle in-memory (5 menit per error type)
+- [x] **AI Insight Integration (Groq API)** — Auto analysis for CRITICAL logs
 
 ### Frontend
 
@@ -250,6 +250,7 @@ Agar tidak pusing membaca ribuan baris log yang sama — kelompokkan dan analisi
 - [ ] **AI Daily Digest** — LLM merangkum error/anomali hari ini dalam bahasa natural (dikirim via email)
 - [ ] **AI Error Deduplication** — gunakan embedding untuk mengelompokkan error yang semantically similar (bukan hanya exact match)
 - [ ] **Prompt Context** — sertakan framework, bahasa, dan error history agar AI suggestion lebih relevan
+- [ ] **AI Copilot (Chatbot)** — Panel asisten pintar untuk bertanya bebas (contoh: *"Rangkum kejadian 7 Februari jam 1 siang"* atau *"Cek siapa ganti saldo klien"*) via Natural Language Processing (NLP) yang langsung diterjemahkan ke kueri database.
 
 ```text
 Contoh AI Suggestion output:
@@ -327,6 +328,11 @@ Export data dan notifikasi ke platform lain.
 - [ ] **Log Archiving** — compress dan archive log lama ke S3/object storage
 - [ ] **Official SDK** — Go, Node.ts, PHP, Python SDK untuk integrasi lebih mudah
 
+### Third-Party Audit Integrations (SaaS Connectors)
+
+- [ ] **Google Workspace Tracker** — Background cron-job untuk menarik data dari *Google Admin SDK Reports API* ke ULAM
+- [ ] **AWS CloudTrail Sync** — Menarik log IAM dan aktivitas *bucket* S3 Amazon ke dalam Dashboard One-Log
+- [ ] **GitHub Org Audit** — Menarik log pendaftaran, penghapusan *repository*, dan perubahan kunci akses dari akun GitHub Enterprise perusahaan
 ---
 
 ## 📊 Feature Priority Matrix
