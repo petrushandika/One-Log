@@ -18,6 +18,8 @@ type LogService interface {
 	ManualAnalyzeLog(id uint) (*domain.LogEntry, error)
 	GetStatsOverview(userID uint) (map[string]interface{}, error)
 	CheckBruteForce(ip string) (bool, error)
+	GetActivitySummary(userID uint) (map[string]interface{}, error)
+	ExportLogs(sourceID string, level string, category string, userID uint) ([]domain.LogEntry, error)
 }
 
 type logService struct {
@@ -77,6 +79,9 @@ func (s *logService) IngestLog(req domain.IngestLogRequest, sourceID string) err
 		return err
 	}
 
+	// Phase 5: Upsert Issue tracker record (best-effort)
+	_ = s.repo.UpsertIssueFromLog(&logEntry)
+
 	// Trigger Background Process (Goroutine)
 	// Features such as: Send Email Notification on error, AI Analysis via Groq, etc.
 	go func(log *domain.LogEntry) {
@@ -123,4 +128,14 @@ func (s *logService) CheckBruteForce(ip string) (bool, error) {
 		return false, err
 	}
 	return count >= 5, nil
+}
+
+func (s *logService) GetActivitySummary(userID uint) (map[string]interface{}, error) {
+	return s.repo.GetActivitySummary(userID)
+}
+
+func (s *logService) ExportLogs(sourceID string, level string, category string, userID uint) ([]domain.LogEntry, error) {
+	// Fetch with high limit to export everything
+	logs, _, err := s.repo.FindAll(100000, 0, sourceID, level, category, userID)
+	return logs, err
 }

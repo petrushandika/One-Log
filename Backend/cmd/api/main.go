@@ -58,12 +58,19 @@ func main() {
 
 	logService := service.NewLogService(logRepo, notifySvc, aiSvc)
 	logHandler := handler.NewLogHandler(logService)
+	activityService := service.NewActivityService(logRepo)
+	activityHandler := handler.NewActivityHandler(activityService)
+	apmService := service.NewAPMService(logRepo)
+	apmHandler := handler.NewAPMHandler(apmService)
+	issueService := service.NewIssueService(logRepo)
+	issueHandler := handler.NewIssueHandler(issueService)
 
 	sourceRepo := repository.NewSourceRepository(db)
 	sourceService := service.NewSourceService(sourceRepo)
 	sourceHandler := handler.NewSourceHandler(sourceService)
 
 	authHandler := handler.NewAuthHandler(db, logService)
+	statusHandler := handler.NewStatusHandler(sourceRepo)
 
 	configRepo := repository.NewConfigRepository(db)
 	configService := service.NewConfigService(configRepo)
@@ -96,10 +103,15 @@ func main() {
 
 	api := r.Group("/api/v1")
 	{
+		// Public (no auth) status page data
+		api.GET("/status", statusHandler.PublicStatus)
+
 		// 6a. Public Endpoint
 		auth := api.Group("/auth")
 		{
 			auth.POST("/login", authHandler.Login)
+			auth.POST("/refresh", authHandler.Refresh)
+			auth.POST("/logout", authHandler.Logout)
 		}
 
 		// 6b. API Key Protected (For client applications)
@@ -117,18 +129,37 @@ func main() {
 			admin.GET("/logs", logHandler.GetAll)
 			admin.GET("/logs/:id", logHandler.GetByID)
 			admin.POST("/logs/:id/analyze", logHandler.Analyze)
+			admin.GET("/logs/export", logHandler.ExportCSV)
 
 			// Stats
 			admin.GET("/stats/overview", logHandler.GetStatsOverview)
+			admin.GET("/stats/activity", logHandler.GetActivitySummary)
+
+			// Activity (Phase 2)
+			admin.GET("/activity", activityHandler.List)
+			admin.GET("/activity/summary", activityHandler.Summary)
+			admin.GET("/activity/users/:user_id", activityHandler.ByUser)
+			admin.GET("/activity/suspicious", activityHandler.Suspicious)
+
+			// APM (Phase 3)
+			admin.GET("/apm/endpoints", apmHandler.EndpointStats)
+
+			// Issues (Phase 5)
+			admin.GET("/issues", issueHandler.List)
+			admin.GET("/issues/:fingerprint", issueHandler.Get)
+			admin.PATCH("/issues/:fingerprint", issueHandler.UpdateStatus)
+			admin.GET("/issues/:fingerprint/logs", issueHandler.Logs)
 
 			// Configs
 			admin.POST("/sources/:id/configs", configHandler.Save)
 			admin.GET("/sources/:id/configs", configHandler.GetBySource)
+			admin.GET("/sources/:id/configs/history", configHandler.History)
 
 			// Sources
 			admin.POST("/sources", sourceHandler.Create)
 			admin.GET("/sources", sourceHandler.GetAll)
 			admin.GET("/sources/:id", sourceHandler.GetByID)
+			admin.PATCH("/sources/:id", sourceHandler.Update)
 			admin.POST("/sources/:id/rotate-key", sourceHandler.RotateKey)
 		}
 	}

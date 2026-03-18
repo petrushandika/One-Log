@@ -8,6 +8,7 @@ import (
 
 	"github.com/petrushandika/one-log/internal/domain"
 	"github.com/petrushandika/one-log/pkg/email"
+	"github.com/petrushandika/one-log/pkg/webhook"
 )
 
 // NotificationService handles alert throttling and distribution
@@ -17,6 +18,7 @@ type NotificationService interface {
 
 type notificationService struct {
 	emailClient email.SMTPEmailService
+	webhook     *webhook.Client
 	lastSent    sync.Map // Key: "{source_id}:{message}", Value: time.Time
 }
 
@@ -24,6 +26,7 @@ func NewNotificationService() NotificationService {
 	// Simple memory-based debounce
 	return &notificationService{
 		emailClient: *email.NewSMTPEmailService(),
+		webhook:     webhook.New(),
 	}
 }
 
@@ -62,5 +65,17 @@ func (s *notificationService) NotifyError(logEntry *domain.LogEntry) {
 		s.lastSent.Delete(issueKey)
 	} else {
 		log.Printf("Notification Email Sent to %s for %s\n", adminEmail, issueKey)
+	}
+
+	// 4. Optional webhook integration (Phase 7)
+	if url := os.Getenv("WEBHOOK_URL"); url != "" {
+		_ = s.webhook.SendJSON(url, map[string]interface{}{
+			"source_id":   logEntry.SourceID,
+			"category":    logEntry.Category,
+			"level":       logEntry.Level,
+			"message":     logEntry.Message,
+			"created_at":  logEntry.CreatedAt.UTC().Format(time.RFC3339),
+			"fingerprint": logEntry.Fingerprint,
+		})
 	}
 }
