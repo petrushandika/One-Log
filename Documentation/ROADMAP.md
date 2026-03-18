@@ -10,7 +10,7 @@
 
 ## ✅ Fase 1 — Core (MVP)
 
-**Status**: In Progress
+**Status**: Stable
 
 Fondasi sistem: terima log, simpan, tampilkan, dan notifikasi.
 
@@ -18,32 +18,32 @@ Fondasi sistem: terima log, simpan, tampilkan, dan notifikasi.
 
 - [x] Setup project Golang + Gin
 - [x] PostgreSQL + GORM AutoMigrate
-- [ ] `POST /api/ingest` — ingestion endpoint + API Key auth
-- [ ] Async goroutine untuk DB write (response < 100ms)
-- [ ] Validasi payload (category, level enum)
-- [ ] JWT Auth untuk admin dashboard
-- [ ] `GET /api/logs` + filter + pagination
-- [ ] `GET /api/logs/:id`
-- [ ] `GET/POST /api/sources` — Source management
-- [ ] `POST /api/sources/:slug/rotate-key`
-- [ ] `GET /api/stats/overview`
+- [x] `POST /api/ingest` — ingestion endpoint + API Key auth
+- [x] Async goroutine untuk DB write (response < 100ms)
+- [x] Validasi payload (category, level enum)
+- [x] JWT Auth untuk admin dashboard
+- [x] `GET /api/logs` + filter + pagination
+- [x] `GET /api/logs/:id`
+- [x] `GET/POST /api/sources` — Source management
+- [x] `POST /api/sources/:slug/rotate-key`
+- [x] `GET /api/stats/overview`
 
 ### Notification
 
-- [ ] SMTP email integration
-- [ ] HTML email template
-- [ ] Throttle in-memory (5 menit per error type)
-- [ ] **AI Insight Integration (Groq API)** — Auto analysis for CRITICAL logs
+- [x] SMTP email integration
+- [x] HTML email template
+- [x] Throttle in-memory (5 menit per error type)
+- [x] **AI Insight Integration (Groq API)** — Auto analysis for CRITICAL logs
 
 ### Frontend
 
-- [ ] Setup React 19 + Vite 7 + Tailwind v4 (Feature-Based structure)
-- [ ] Login page + JWT session
-- [ ] Overview dashboard — stats cards
-- [ ] Log Table + filter (source, level, category, date)
-- [ ] Log Detail modal — JSON viewer + stack trace
-- [ ] **AI "Analyze" Button** — Manual trigger on log selection
-- [ ] Sources Management page
+- [x] Setup React 19 + Vite 7 + Tailwind v4 (Feature-Based structure)
+- [x] Login page + JWT session
+- [x] Overview dashboard — stats cards
+- [x] Log Table + filter (source, level, category, date range)
+- [x] Log Detail modal — JSON viewer + stack trace
+- [x] **AI "Analyze" Button** — Manual trigger on log selection
+- [x] Sources Management page
 
 ### Infra
 
@@ -58,20 +58,20 @@ Fondasi sistem: terima log, simpan, tampilkan, dan notifikasi.
 
 ---
 
-## 🔄 Fase 2 — Activity Monitor & Audit Trail
+## ✅ Fase 2 — Activity Monitor & Audit Trail
 
-**Status**: Planned (next after MVP stable)
+**Status**: Implemented
 
 Mencatat **siapa melakukan apa, dari mana, kapan** — bukan hanya error, tapi seluruh jejak aktivitas pengguna dan riwayat perubahan data yang tidak bisa diubah.
 
 ### Auth Event Tracking
 
-- [ ] **Standardized AUTH_EVENT payload** — kontrak field untuk semua auth methods
+- [x] **Standardized AUTH_EVENT payload** — kontrak field untuk semua auth methods
 - [ ] **Auth Method Dashboard** — breakdown pie chart: Google vs Manual vs GitHub vs lainnya
 - [ ] **Login Timeline** — visual timeline login events per source per hari
 - [ ] **Failed Login Heatmap** — visualisasi jam-jam dengan high failed login rate
 - [ ] **Recent Sessions Table** — user, auth_method, IP, browser, device, timestamp, source
-- [ ] **Brute Force Detection** — alert jika `login_failed` > threshold dari satu IP dalam 10 menit
+- [x] **Brute Force Detection** — alert jika `login_failed` > threshold dari satu IP dalam 10 menit
 
 **Auth methods yang didukung:**
 
@@ -90,11 +90,11 @@ Mencatat **siapa melakukan apa, dari mana, kapan** — bukan hanya error, tapi s
 
 Catat setiap perubahan data penting di aplikasi client (CMS, Absensi, dll.) sebagai bukti otentik yang **tidak bisa diedit**.
 
-- [ ] **User Activity Log** — catat setiap kali admin mengubah/menghapus data (di CMS, absensi, dll.)
-- [ ] **Immutable Log Flag** — log dengan `category: AUDIT_TRAIL` tidak bisa dihapus via API, hanya via DB migration
-- [ ] **IP & Device Tracking** — field wajib: `ip_address`, `device_type`, `browser`, `os`
-- [ ] **Before/After Diff** — context menyimpan nilai sebelum dan sesudah perubahan
-- [ ] **Audit Trail Page** — halaman khusus di dashboard untuk audit, bisa filter by user/resource/action
+- [x] **User Activity Log** — catat setiap kali admin mengubah/menghapus data (di CMS, absensi, dll.)
+- [x] **Immutable Log Flag** — log dengan `category: AUDIT_TRAIL` tidak bisa dihapus via API, hanya via DB migration
+- [x] **IP & Device Tracking** — field `ip_address` tersimpan pada setiap log entry
+- [ ] **Before/After Diff** — context menyimpan nilai sebelum dan sesudah perubahan (future)
+- [x] **Audit Trail Page** — halaman khusus di dashboard untuk audit, filter & pagination aktif
 - [ ] **Compliance Export** — export audit trail ke PDF/CSV untuk keperluan audit eksternal
 
 **Contoh payload Audit Trail:**
@@ -128,23 +128,23 @@ Catat setiap perubahan data penting di aplikasi client (CMS, Absensi, dll.) seba
 
 ### API Enhancements
 
-- [ ] `GET /api/activity` — filter activity logs (category=AUTH_EVENT,USER_ACTIVITY,AUDIT_TRAIL)
-- [ ] `GET /api/activity/summary` — agregat login count by auth_method & event_type
-- [ ] `GET /api/activity/users/:user_id` — semua aktivitas satu user ID lintas semua source
-- [ ] `GET /api/activity/suspicious` — login mencurigakan & anomali
+- [x] `GET /api/activity` — filter activity logs (category=AUTH_EVENT,USER_ACTIVITY,AUDIT_TRAIL)
+- [x] `GET /api/activity/summary` — agregat login count by auth_method & event_type
+- [x] `GET /api/activity/users/:user_id` — semua aktivitas satu user ID lintas semua source
+- [x] `GET /api/activity/suspicious` — login mencurigakan & anomali
 
 ---
 
-## 📈 Fase 3 — Performance Monitoring (APM)
+## ✅ Fase 3 — Performance Monitoring (APM)
 
-**Status**: Planned
+**Status**: Implemented
 
 Jangan hanya catat **kapan** error terjadi — catat juga **seberapa lambat** sistem berjalan.
 
 ### Response Time Tracking
 
-- [ ] **Endpoint Latency Log** — catat waktu response setiap API di aplikasi client dengan `category: PERFORMANCE`
-- [ ] **P50 / P95 / P99 Stats** — agregasi persentil untuk setiap endpoint
+- [x] **Endpoint Latency Log** — catat waktu response setiap API di aplikasi client dengan `category: PERFORMANCE`
+- [x] **P50 / P95 / P99 Stats** — agregasi persentil untuk setiap endpoint via `GET /api/apm/endpoints`
 - [ ] **Threshold Alert** — kirim email jika rata-rata response time > X ms (konfigurabel per source)
 - [ ] **Response Time Timeline** — Line chart di dashboard untuk melihat tren dari waktu ke waktu per endpoint
 
@@ -175,25 +175,25 @@ Jangan hanya catat **kapan** error terjadi — catat juga **seberapa lambat** si
 
 ### APM Dashboard
 
-- [ ] **APM Overview Page** — halaman khusus performance di frontend
-- [ ] **Per-Source APM** — pilih source lalu lihat latency trend, error rate, slow query
+- [x] **APM Overview Page** — halaman khusus performance di frontend
+- [x] **Per-Source APM** — pilih source lalu lihat latency trend per endpoint
 - [ ] **Apdex Score** (future) — skor kepuasan performa agregat berdasarkan threshold
 
 ---
 
-## 🟢 Fase 4 — Status Page & Uptime Monitoring
+## ✅ Fase 4 — Status Page & Uptime Monitoring
 
-**Status**: Planned
+**Status**: Implemented
 
 Mirip [uptime.com](https://uptime.com) / [betterstack.com](https://betterstack.com) — tapi terintegrasi langsung dengan data log ULAM.
 
 ### Health Check Worker
 
-- [ ] **Health Check Goroutine** — background worker di ULAM yang ping URL terdaftar setiap N menit (default: 5 menit)
-- [ ] **Per-Source Health Endpoint** — tiap source bisa mendaftarkan URL health check (misal `https://absensi.app/health`)
-- [ ] **Status Enum**: `ONLINE`, `DEGRADED`, `OFFLINE`, `MAINTENANCE`
-- [ ] **Downtime Detection** — jika ping gagal 3x berturut-turut → status `OFFLINE` + kirim email alert
-- [ ] **Auto Log on Down** — sistem otomatis kirim log `level: CRITICAL`, `category: SYSTEM_ERROR` saat source offline
+- [x] **Health Check Goroutine** — background worker di ULAM yang ping URL terdaftar setiap N menit (default: 5 menit)
+- [x] **Per-Source Health Endpoint** — tiap source bisa mendaftarkan URL health check (misal `https://absensi.app/health`)
+- [x] **Status Enum**: `ONLINE`, `DEGRADED`, `OFFLINE`, `MAINTENANCE`
+- [x] **Downtime Detection** — jika ping gagal 3x berturut-turut → status `OFFLINE` + kirim email alert
+- [x] **Auto Log on Down** — sistem otomatis kirim log `level: CRITICAL`, `category: SYSTEM_ERROR` saat source offline
 
 ```go
 // worker/health-check-worker.go
@@ -211,45 +211,48 @@ func (w *HealthCheckWorker) RunLoop() {
 
 - [ ] **Incident Auto-Create** — saat source offline, sistem buat incident record otomatis
 - [ ] **Incident Timeline** — kapan down, kapan recover, berapa lama downtime
-- [ ] **Email: "Server Down"** — notifikasi instan saat down dengan estimasi dampak
+- [x] **Email: "Server Down"** — notifikasi instan saat down dengan estimasi dampak
 - [ ] **Email: "Server Recovered"** — notifikasi saat sistem kembali online
 
 ### Public / Internal Status Page
 
-- [ ] **Public Status Page** — satu halaman React yang _tidak perlu login_ untuk melihat status semua source
+- [x] **Public Status Page** — `GET /api/status` endpoint tersedia tanpa autentikasi
+- [x] **Status Page UI** — halaman `/status` di dashboard: source cards dengan badge ONLINE/DEGRADED/OFFLINE/MAINTENANCE, auto-refresh 60 detik
 - [ ] **URL**: `https://status.ulam.your-domain.com` atau `https://ulam.your-domain.com/status`
-- [ ] **Tampilan**: Nama source, status badge (Online/Down), uptime % 30 hari terakhir, incident history
+- [ ] **Tampilan publik**: uptime % 30 hari terakhir, incident history
 - [ ] **Embed Widget** — badge status yang bisa di-embed di README atau halaman lain
 
 ---
 
-## 🧩 Fase 5 — Error Grouping & Smart Analysis
+## ✅ Fase 5 — Error Grouping & Smart Analysis
 
-**Status**: Planned
+**Status**: Implemented
 
 Agar tidak pusing membaca ribuan baris log yang sama — kelompokkan dan analisis secara otomatis.
 
 ### Error Grouping
 
-- [ ] **Auto-Grouping** — log dengan message dan stack trace yang mirip dikelompokkan menjadi satu "Issue"
-- [ ] **Fingerprinting Algorithm** — hash dari `(source_id + normalized_message + stack_trace[:100])` sebagai group key
-- [ ] **Issue Tracker** — halaman "Issues" di dashboard: daftar group error dengan jumlah occurrence & first/last seen
-- [ ] **Issue Detail** — lihat semua individual log dalam satu group, tren occurrence per jam/hari
-- [ ] **Issue Status** — tandai issue sebagai `OPEN`, `RESOLVED`, `IGNORED`
+- [x] **Auto-Grouping** — log dengan message dan stack trace yang mirip dikelompokkan menjadi satu "Issue" (Via Fingerprinting)
+- [x] **Fingerprinting Algorithm** — hash dari `(source_id + normalized_message + stack_trace[:100])` sebagai group key
+- [x] **Issue Tracker** — halaman "Issues" di dashboard: daftar group error dengan jumlah occurrence & first/last seen
+- [x] **Issue Detail** — lihat semua individual log dalam satu group via modal
+- [x] **Issue Status** — tandai issue sebagai `OPEN`, `RESOLVED`, `IGNORED`
 - [ ] **Regression Detection** — alert jika issue yang sudah `RESOLVED` muncul lagi
 
 ### Error Analytics
 
-- [ ] **"Source mana yang paling sering error?"** — bar chart ranking error count per source
-- [ ] **"Jam berapa error paling sering terjadi?"** — heatmap per jam dalam seminggu
-- [ ] **"Error apa yang paling sering muncul?"** — top 10 error messages
-- [ ] **Error Rate Trend** — persentase log yang error vs total per hari
+- [x] **"Source mana yang paling sering error?"** — CSS progress bar ranking occurrence count per source (Issues › Analytics tab)
+- [ ] **"Jam berapa error paling sering terjadi?"** — heatmap per jam dalam seminggu <!-- backlog -->
+- [x] **"Error apa yang paling sering muncul?"** — top 10 error messages (Issues › Analytics tab)
+- [x] **Level breakdown** — badge count CRITICAL/ERROR/WARN untuk open issues (Issues › Analytics tab)
+- [ ] **Error Rate Trend** — persentase log yang error vs total per hari <!-- backlog -->
 
 ### AI Integration
 
-- [ ] **AI Daily Digest** — LLM merangkum error/anomali hari ini dalam bahasa natural (dikirim via email)
-- [ ] **AI Error Deduplication** — gunakan embedding untuk mengelompokkan error yang semantically similar (bukan hanya exact match)
-- [ ] **Prompt Context** — sertakan framework, bahasa, dan error history agar AI suggestion lebih relevan
+- [x] **AI Copilot (Chatbot)** — Floating chat widget (purple, `POST /api/chat`) dengan Groq llama-3.3-70b; system prompt project-aware dengan live stats (total logs, ERROR/CRITICAL count, open issues)
+- [ ] **AI Daily Digest** — LLM merangkum error/anomali hari ini dalam bahasa natural (dikirim via email) <!-- backlog -->
+- [ ] **AI Error Deduplication** — gunakan embedding untuk mengelompokkan error yang semantically similar (bukan hanya exact match) <!-- backlog -->
+- [ ] **Prompt Context** — sertakan framework, bahasa, dan error history agar AI suggestion lebih relevan <!-- backlog -->
 
 ```text
 Contoh AI Suggestion output:
@@ -267,24 +270,24 @@ Stack: main.connectDB() at db.go:45
 
 ---
 
-## ⚙️ Fase 6 — Centralized Configuration Management
+## ✅ Fase 6 — Centralized Configuration Management
 
-**Status**: Future
+**Status**: Implemented
 
 Kelola semua konfigurasi aplikasi-aplikasi Anda dari satu tempat — tanpa harus SSH ke setiap server.
 
 ### Config Storage
 
-- [ ] **Config Table** — tabel `source_configs` di PostgreSQL: `source_id`, `key`, `value`, `is_secret`, `updated_at`
-- [ ] **Secret Management** — nilai sensitif (API key, password) dienkripsi dengan AES-256 sebelum disimpan
-- [ ] **Versioning** — setiap perubahan config tersimpan sebagai history (audit trail config)
+- [x] **Config Table** — tabel `source_configs` di PostgreSQL: `source_id`, `key`, `value`, `is_secret`, `updated_at`
+- [x] **Secret Management** — nilai sensitif dienkripsi dengan AES-256 (NaCl secretbox) sebelum disimpan
+- [x] **Versioning** — setiap perubahan config tersimpan di `source_config_histories`
 - [ ] **Environment Namespacing** — config bisa punya namespace: `production`, `staging`, `development`
 
 ### Config API
 
-- [ ] `GET /api/config/:source_slug` — aplikasi client pull config terbaru saat startup
-- [ ] `PUT /api/config/:source_slug/:key` — update config value via dashboard
-- [ ] `GET /api/config/:source_slug/history` — riwayat perubahan config
+- [x] `GET /api/config/:source_slug` — aplikasi client pull config terbaru saat startup
+- [x] `PUT /api/config/:source_slug/:key` — update config value via dashboard
+- [x] `GET /api/config/:source_slug/history` — riwayat perubahan config
 
 ### Hot Reload
 
@@ -305,28 +308,33 @@ func WatchConfig(sourceSlug string, interval time.Duration, onUpdate func(map[st
 
 ### Dashboard Config Management
 
-- [ ] **Config Editor UI** — edit config per source langsung dari dashboard (dengan diff view)
-- [ ] **Secret Toggle** — nilai secret ditampilkan sebagai `****`, bisa "reveal" dengan konfirmasi
-- [ ] **Rollback** — rollback config ke versi sebelumnya dengan satu klik
-- [ ] **Config Audit Trail** — siapa yang mengubah config apa, kapan (terintegrasi dengan Fase 2)
+- [x] **Config Editor UI** — halaman `/config` di dashboard, edit config per source dengan slide-over panel
+- [x] **Secret Toggle** — nilai secret ditampilkan sebagai `••••••••`, bisa "reveal" dengan klik Eye icon
+- [x] **Rollback** — rollback config ke versi sebelumnya dari tab History dengan satu klik
+- [ ] **Config Audit Trail** — siapa yang mengubah config apa, kapan (terintegrasi dengan Fase 2) <!-- backlog -->
 
 ---
 
-## 📤 Fase 7 — Export & Extended Integrations
+## 🔄 Fase 7 — Export & Extended Integrations
 
-**Status**: Future
+**Status**: Partially Implemented (CSV export + webhook done; Slack/S3/SDK pending)
 
 Export data dan notifikasi ke platform lain.
 
-- [ ] **CSV Export** — export hasil filter log ke CSV
+- [x] **CSV Export** — `GET /api/logs/export` — export hasil filter log ke CSV
 - [ ] **Excel Export** — export ke .xlsx dengan formatting
 - [ ] **PDF Audit Report** — export audit trail ke PDF untuk compliance
 - [ ] **Slack Notification** — alert ke Slack channel
 - [ ] **Telegram Bot** — notifikasi ke Telegram group/channel
-- [ ] **Webhook Support** — generic outgoing webhook ke URL apapun
+- [x] **Webhook Support** — generic outgoing webhook ke URL apapun (via `WEBHOOK_URL` env)
 - [ ] **Log Archiving** — compress dan archive log lama ke S3/object storage
 - [ ] **Official SDK** — Go, Node.ts, PHP, Python SDK untuk integrasi lebih mudah
 
+### Third-Party Audit Integrations (SaaS Connectors)
+
+- [ ] **Google Workspace Tracker** — Background cron-job untuk menarik data dari *Google Admin SDK Reports API* ke ULAM
+- [ ] **AWS CloudTrail Sync** — Menarik log IAM dan aktivitas *bucket* S3 Amazon ke dalam Dashboard One-Log
+- [ ] **GitHub Org Audit** — Menarik log pendaftaran, penghapusan *repository*, dan perubahan kunci akses dari akun GitHub Enterprise perusahaan
 ---
 
 ## 📊 Feature Priority Matrix

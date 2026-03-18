@@ -1,0 +1,141 @@
+package service
+
+import (
+	"crypto/sha256"
+	"encoding/json"
+	"fmt"
+	"time"
+
+	"github.com/petrushandika/one-log/internal/domain"
+	"github.com/petrushandika/one-log/internal/repository"
+	"github.com/petrushandika/one-log/pkg/masking"
+	"gorm.io/datatypes"
+)
+
+type LogService interface {
+	IngestLog(req domain.IngestLogRequest, sourceID string) error
+	GetLogs(limit int, page int, sourceID string, level string, category string, userID uint, from, to *time.Time) ([]domain.LogEntry, int64, error)
+	GetLogByID(id uint) (*domain.LogEntry, error)
+	ManualAnalyzeLog(id uint) (*domain.LogEntry, error)
+	GetStatsOverview(userID uint) (map[string]interface{}, error)
+	CheckBruteForce(ip string) (bool, error)
+	GetActivitySummary(userID uint) (map[string]interface{}, error)
+	ExportLogs(sourceID string, level string, category string, userID uint, from, to *time.Time) ([]domain.LogEntry, error)
+}
+
+type logService struct {
+	repo      repository.LogRepository
+	notifySvc NotificationService
+	aiSvc     AIService
+}
+
+func NewLogService(repo repository.LogRepository, notifySvc NotificationService, aiSvc AIService) LogService {
+	return &logService{
+		repo:      repo,
+		notifySvc: notifySvc,
+		aiSvc:     aiSvc,
+	}
+}
+
+func (s *logService) IngestLog(req domain.IngestLogRequest, sourceID string) error {
+	// Apply Data Masking for PII into the free-form context
+	maskedContext := req.Context
+	if maskedContext != nil {
+		maskedContext = masking.MaskSensitiveData(maskedContext)
+	}
+
+	// Safely Marshal to JSONB datatypes
+	var contextRaw datatypes.JSON
+	if maskedContext != nil {
+		contextBytes, _ := json.Marshal(maskedContext)
+		contextRaw = datatypes.JSON(contextBytes)
+	}
+
+	// Business Logic
+	logEntry := domain.LogEntry{
+		SourceID:   sourceID, // Using SourceID injected from the API Key middleware
+		Category:   req.Category,
+		Level:      req.Level,
+		Message:    req.Message,
+		StackTrace: req.StackTrace,
+		IPAddress:  req.IPAddress,
+		Context:    contextRaw,
+	}
+
+	// Fase 5: Fingerprint Setup
+	fingerprintSource := logEntry.SourceID + logEntry.Level + logEntry.Message
+	if logEntry.StackTrace != "" {
+		if len(logEntry.StackTrace) > 100 {
+			fingerprintSource += logEntry.StackTrace[:100]
+		} else {
+			fingerprintSource += logEntry.StackTrace
+		}
+	}
+	hash := sha256.Sum256([]byte(fingerprintSource))
+	logEntry.Fingerprint = fmt.Sprintf("%x", hash)
+
+	// Save to DB
+	err := s.repo.Create(&logEntry)
+	if err != nil {
+		return err
+	}
+
+	// Phase 5: Upsert Issue tracker record (best-effort)
+	_ = s.repo.UpsertIssueFromLog(&logEntry)
+
+	// Trigger Background Process (Goroutine)
+	// Features such as: Send Email Notification on error, AI Analysis via Groq, etc.
+	go func(log *domain.LogEntry) {
+		// 1. Trigger Notification (handles internal throttling)
+		s.notifySvc.NotifyError(log)
+
+		// 2. Automatic AI Analysis for CRITICAL logs
+		if log.Level == "CRITICAL" {
+			s.aiSvc.AnalyzeCriticalLog(log)
+		}
+	}(&logEntry)
+
+	return nil
+}
+
+func (s *logService) GetLogs(limit int, page int, sourceID string, level string, category string, userID uint, from, to *time.Time) ([]domain.LogEntry, int64, error) {
+	if limit <= 0 {
+		limit = 20
+	}
+	if page <= 0 {
+		page = 1
+	}
+	offset := (page - 1) * limit
+
+	return s.repo.FindAll(limit, offset, sourceID, level, category, userID, from, to)
+}
+
+func (s *logService) GetLogByID(id uint) (*domain.LogEntry, error) {
+	return s.repo.FindByID(id)
+}
+
+func (s *logService) ManualAnalyzeLog(id uint) (*domain.LogEntry, error) {
+	return s.aiSvc.ManualAnalyzeLog(id)
+}
+
+func (s *logService) GetStatsOverview(userID uint) (map[string]interface{}, error) {
+	return s.repo.GetStatsOverview(userID)
+}
+
+func (s *logService) CheckBruteForce(ip string) (bool, error) {
+	// Fase 2: 5 Failed login attempts from same IP within 10 minutes
+	count, err := s.repo.CountFailedAttempts(ip, 10)
+	if err != nil {
+		return false, err
+	}
+	return count >= 5, nil
+}
+
+func (s *logService) GetActivitySummary(userID uint) (map[string]interface{}, error) {
+	return s.repo.GetActivitySummary(userID)
+}
+
+func (s *logService) ExportLogs(sourceID string, level string, category string, userID uint, from, to *time.Time) ([]domain.LogEntry, error) {
+	logs, _, err := s.repo.FindAll(100000, 0, sourceID, level, category, userID, from, to)
+	return logs, err
+}

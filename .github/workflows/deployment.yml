@@ -2,13 +2,13 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ main, development ]
+    branches: [main, development]
   pull_request:
-    branches: [ main, development ]
+    branches: [main, development]
 
 jobs:
   backend:
-    name: Backend CI
+    name: Backend
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -26,12 +26,12 @@ jobs:
           --health-retries 5
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.26'
+          go-version: "1.26"
           cache: true
           cache-dependency-path: Backend/go.sum
 
@@ -64,16 +64,16 @@ jobs:
           go build -v -o bin/api ./cmd/api
 
   frontend:
-    name: Frontend CI
+    name: Frontend
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: '22'
-          cache: 'npm'
+          node-version: "22"
+          cache: "npm"
           cache-dependency-path: Frontend/package-lock.json
 
       - name: Install Dependencies

@@ -7,8 +7,12 @@
 node_modules/
 dist/
 Backend/bin/
+Backend/api
 Frontend/dist/
 
 # Credentials
 .env
 **/.env
+
+# IDE
+.cursor/

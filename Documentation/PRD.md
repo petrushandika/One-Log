@@ -197,6 +197,11 @@ Setiap log entry menangkap:
 | **Template**   | HTML email: Nama App, Level, Message, Stack Trace, Link Dashboard |
 | **Timeout**    | SMTP call timeout 10 detik                                        |
 
+> 🚨 **Aturan Pemicu Notifikasi (Suspicious Activity vs Normal Activity)**:
+> Agar fitur keamanan berjalan maksimal, aplikasi client Anda harus membedakan log:
+> - **Normal (Tidak Kirim Email)**: Misal "User A membuka Google Sheet". Cukup kirim dengan `level: INFO`. Hanya tersimpan diam-diam di ULAM.
+> - **Mencurigakan/Krusial (Otomatis Kirim Email Notifikasi)**: Misal "User A mencoba mengganti saldo klien/nama akun" atau "Upaya curang terdeteksi". Aplikasi harus mengirim log dengan `level: ERROR` atau `CRITICAL` + `category: SECURITY/AUDIT_TRAIL`. Engine ULAM akan mendeteksinya sebagai bahaya dan seketika menembakkan **Notifikasi Darurat** ke Email admin.
+
 ### 6.8 Admin Dashboard
 
 | Fitur                 | Deskripsi                                                                                |
@@ -219,9 +224,12 @@ ULAM mengintegrasikan AI untuk membantu interpretasi log teknis:
 - **Error Summarization**: Mengubah stack trace yang kompleks menjadi ringkasan satu kalimat yang mudah dipahami manusia.
 - **RCA (Root Cause Analysis)**: Memberikan kemungkinan penyebab utama berdasarkan pesan error.
 - **Solution Suggestion**: Memberikan 3 langkah perbaikan yang direkomendasikan.
+- **Context-Aware Classification**: AI (Groq) diberikan *system prompt* khusus agar secara akurat membedakan konteks *severity* (`CRITICAL`, `ERROR`, `WARN`, `INFO`, `DEBUG`).
+    - *Contoh: AI tidak akan memberikan anjuran "Matikan Server" untuk log `INFO` tentang user yang mengunduh laporan, tapi akan menyarankannya jika ada `CRITICAL` eksploitasi keamanan.*
 - **Trigger**:
     - **Automatic**: Untuk log level `CRITICAL`, AI di-trigger otomatis di background.
-    - **Manual**: User bisa menekan tombol "Analyze" pada log level apapun di dashboard.
+    - **Manual (One-Click)**: User bisa menekan tombol "Analyze" pada rincian log di dashboard.
+    - **Interactive Chatbot (Copilot)**: Panel chat interaktif pintar di sudut dashboard. Admin bisa bertanya dengan bahasa natural (contoh: *"Tolong rangkumkan aktivitas siapa saja yang masuk ke aplikasi hari ini dan buka Google Sheet?"* atau *"Apa yang terjadi pada 7 Februari jam 1 siang?"*). AI akan menganalisa dan merangkum seluruh *database* kejadian.
 
 ---
 

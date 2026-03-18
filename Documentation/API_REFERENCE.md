@@ -3,7 +3,6 @@
 ## Unified Log & Activity Monitor (ULAM)
 
 **Base URL**: `https://api.ulam.your-domain.com`  
-**API Version**: `v1`  
 **Content-Type**: `application/json`
 
 ---
@@ -11,11 +10,18 @@
 ## URL Conventions
 
 ```text
-/api/ingest          → Log ingestion (for client apps)
-/api/auth/...        → Authentication
-/api/logs/...        → Log management (dashboard)
-/api/sources/...        → registered Source Management
-/api/stats/...       → Aggregated statistics
+/api/ingest              → Log ingestion (for client apps)
+/api/auth/...            → Authentication
+/api/logs/...            → Log management (dashboard)
+/api/logs/export         → CSV export
+/api/sources/...         → Source management
+/api/stats/...           → Aggregated statistics
+/api/activity/...        → Activity & audit trail (Phase 2)
+/api/apm/...             → APM — endpoint latency (Phase 3)
+/api/issues/...          → Error grouping & issues (Phase 5)
+/api/config/...          → Centralized config management (Phase 6)
+/api/status              → Public status page (no auth, Phase 4)
+/api/chat                → AI Copilot chatbot (Phase 5, JWT required)
 ```
 
 > Note: `/sources` digunakan untuk merepresentasikan "source terdaftar yang mengirim log ke ULAM".
@@ -79,8 +85,10 @@ Set-Cookie: ulam_refresh=eyJhbGci...; HttpOnly; Secure; SameSite=Strict; Max-Age
 
 ```json
 {
-  "error": "Invalid credentials",
-  "code": "INVALID_CREDENTIALS"
+  "status": "error",
+  "code": 401,
+  "message": "Invalid credentials",
+  "errors": null
 }
 ```
 
@@ -801,15 +809,222 @@ Statistik spesifik untuk satu aplikasi.
 
 ---
 
+---
+
+## 6. Activity & Audit Trail
+
+### `GET /api/activity`
+
+**Auth**: JWT
+
+**Query Parameters:**
+
+| Param       | Default | Description                                     |
+| ----------- | ------- | ----------------------------------------------- |
+| `category`  | —       | `AUTH_EVENT`, `USER_ACTIVITY`, `AUDIT_TRAIL`    |
+| `source_id` | —       | Filter by source UUID                           |
+| `page`      | `1`     | Page number                                     |
+| `limit`     | `20`    | Items per page                                  |
+
+**Response `200 OK`:**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "items": [
+      {
+        "id": 101,
+        "source_id": "uuid",
+        "category": "AUTH_EVENT",
+        "level": "INFO",
+        "message": "Admin logged in successfully",
+        "ip_address": "192.168.1.5",
+        "context": { "email": "admin@onelog.com" },
+        "created_at": "2026-03-18T09:00:00Z"
+      }
+    ],
+    "meta": { "total": 500, "page": 1, "limit": 20 }
+  }
+}
+```
+
+### `GET /api/activity/summary`
+
+**Auth**: JWT — Returns count breakdown by category/level.
+
+### `GET /api/activity/users/:user_id`
+
+**Auth**: JWT — All activity events for a specific user ID.
+
+### `GET /api/activity/suspicious`
+
+**Auth**: JWT — Events flagged as suspicious (brute force, anomaly).
+
+---
+
+## 7. APM — Performance Monitoring
+
+### `GET /api/apm/endpoints`
+
+**Auth**: JWT
+
+**Query Parameters:**
+
+| Param       | Default | Description            |
+| ----------- | ------- | ---------------------- |
+| `source_id` | —       | Filter by source UUID  |
+| `period`    | `24h`   | `24h`, `7d`, `30d`     |
+
+**Response `200 OK`:**
+
+```json
+{
+  "status": "success",
+  "data": [
+    {
+      "endpoint": "/api/users",
+      "method": "GET",
+      "p50_ms": 45,
+      "p95_ms": 120,
+      "p99_ms": 340,
+      "count": 4200
+    }
+  ]
+}
+```
+
+---
+
+## 8. Issues — Error Grouping
+
+### `GET /api/issues`
+
+**Auth**: JWT
+
+**Query Parameters:**
+
+| Param       | Default | Options                         |
+| ----------- | ------- | ------------------------------- |
+| `status`    | —       | `OPEN`, `RESOLVED`, `IGNORED`   |
+| `source_id` | —       | Filter by source UUID           |
+| `page`      | `1`     |                                 |
+| `limit`     | `20`    |                                 |
+
+**Response `200 OK`:**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "items": [
+      {
+        "fingerprint": "sha256hash...",
+        "source_id": "uuid",
+        "category": "SYSTEM_ERROR",
+        "level": "ERROR",
+        "status": "OPEN",
+        "message_sample": "connection refused at postgres:5432",
+        "occurrence_count": 43,
+        "first_seen_at": "2026-03-10T12:00:00Z",
+        "last_seen_at": "2026-03-18T08:55:00Z"
+      }
+    ],
+    "meta": { "total": 12, "page": 1, "limit": 20 }
+  }
+}
+```
+
+### `GET /api/issues/:fingerprint`
+
+**Auth**: JWT — Full detail for one issue.
+
+### `PATCH /api/issues/:fingerprint`
+
+**Auth**: JWT — Update issue status.
+
+**Request:**
+
+```json
+{ "status": "RESOLVED" }
+```
+
+### `GET /api/issues/:fingerprint/logs`
+
+**Auth**: JWT — Individual log entries belonging to this issue (paginated).
+
+---
+
+## 9. Config Management
+
+### `GET /api/config/:source_slug`
+
+**Auth**: JWT — Returns all non-secret config values for a source.
+
+### `PUT /api/config/:source_slug/:key`
+
+**Auth**: JWT — Create or update a config key.
+
+**Request:**
+
+```json
+{ "value": "my-value", "is_secret": false }
+```
+
+### `GET /api/config/:source_slug/history`
+
+**Auth**: JWT — Returns version history for a source's config.
+
+---
+
+## 10. Logs — CSV Export
+
+### `GET /api/logs/export`
+
+**Auth**: JWT  
+**Response Content-Type**: `text/csv`
+
+**Query Parameters**: same as `GET /api/logs` (source_id, level, category).
+
+---
+
+## 11. Public Status Page
+
+### `GET /api/status`
+
+**Auth**: Public (no authentication required)
+
+**Response `200 OK`:**
+
+```json
+{
+  "status": "success",
+  "data": [
+    {
+      "id": "uuid",
+      "name": "Payment Gateway",
+      "status": "ONLINE",
+      "health_url": "https://api.example.com/health",
+      "updated_at": "2026-03-18T09:00:00Z"
+    }
+  ]
+}
+```
+
+---
+
 ## Error Response Format
 
 Semua error menggunakan format konsisten:
 
 ```json
 {
-  "error": "Human-readable error message",
-  "code": "MACHINE_READABLE_CODE",
-  "details": ["optional array of field-level messages"]
+  "status": "error",
+  "code": 400,
+  "message": "Human-readable error message",
+  "errors": [
+    { "field": "email", "message": "invalid email format" }
+  ]
 }
 ```
 
@@ -826,6 +1041,46 @@ Semua error menggunakan format konsisten:
 | `SLUG_CONFLICT`       | 409         | Slug sudah dipakai                   |
 | `RATE_LIMIT_EXCEEDED` | 429         | Terlalu banyak request               |
 | `INTERNAL_ERROR`      | 500         | Error tidak terduga di server        |
+
+---
+
+---
+
+## AI Copilot — Chat
+
+### POST /api/chat
+
+Send a natural-language question to the AI Copilot. Requires JWT authentication.
+
+**Auth**: `Authorization: Bearer <token>` (JWT)
+
+**Request:**
+
+```json
+{
+  "message": "How many CRITICAL errors do I have?"
+}
+```
+
+**Response `200`:**
+
+```json
+{
+  "status": "success",
+  "message": "Reply generated",
+  "data": {
+    "reply": "## Critical Errors\n\nBased on the current snapshot, you have **3 CRITICAL** log entries..."
+  }
+}
+```
+
+The AI has access to:
+- Total log count
+- ERROR and CRITICAL log counts
+- Number of open Issues
+- Full project context (categories, levels, APM structure, etc.)
+
+Responses are formatted in Markdown and rendered in the chat widget.
 
 ---
 
