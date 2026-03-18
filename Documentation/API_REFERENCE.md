@@ -21,6 +21,7 @@
 /api/issues/...          → Error grouping & issues (Phase 5)
 /api/config/...          → Centralized config management (Phase 6)
 /api/status              → Public status page (no auth, Phase 4)
+/api/chat                → AI Copilot chatbot (Phase 5, JWT required)
 ```
 
 > Note: `/sources` digunakan untuk merepresentasikan "source terdaftar yang mengirim log ke ULAM".
@@ -1040,6 +1041,46 @@ Semua error menggunakan format konsisten:
 | `SLUG_CONFLICT`       | 409         | Slug sudah dipakai                   |
 | `RATE_LIMIT_EXCEEDED` | 429         | Terlalu banyak request               |
 | `INTERNAL_ERROR`      | 500         | Error tidak terduga di server        |
+
+---
+
+---
+
+## AI Copilot — Chat
+
+### POST /api/chat
+
+Send a natural-language question to the AI Copilot. Requires JWT authentication.
+
+**Auth**: `Authorization: Bearer <token>` (JWT)
+
+**Request:**
+
+```json
+{
+  "message": "How many CRITICAL errors do I have?"
+}
+```
+
+**Response `200`:**
+
+```json
+{
+  "status": "success",
+  "message": "Reply generated",
+  "data": {
+    "reply": "## Critical Errors\n\nBased on the current snapshot, you have **3 CRITICAL** log entries..."
+  }
+}
+```
+
+The AI has access to:
+- Total log count
+- ERROR and CRITICAL log counts
+- Number of open Issues
+- Full project context (categories, levels, APM structure, etc.)
+
+Responses are formatted in Markdown and rendered in the chat widget.
 
 ---
 

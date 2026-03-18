@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar, Legend } from 'recharts';
-import { ArrowUpRight, ArrowDownRight, Activity, Terminal, Shield, AlertCircle, RefreshCw } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, Activity, Terminal, Shield, AlertCircle, RefreshCw, LayoutDashboard } from 'lucide-react';
 import { statsApi, sourcesApi } from '../shared/lib/api';
 
 interface StatsData {
@@ -108,7 +108,10 @@ export default function Overview() {
     <div className="space-y-8">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-white">Overview</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2.5">
+            <LayoutDashboard size={22} className="text-purple-400" />
+            Overview
+          </h1>
           <p className="text-sm text-zinc-400">Everything happening on your systems</p>
         </div>
         <button

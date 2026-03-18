@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BugPlay, ChevronLeft, ChevronRight, Filter, X, CheckCircle2, EyeOff, AlertTriangle, Clock, RefreshCw } from 'lucide-react';
+import { BugPlay, ChevronLeft, ChevronRight, Filter, X, CheckCircle2, EyeOff, AlertTriangle, Clock, RefreshCw, BarChart3 } from 'lucide-react';
 import { issuesApi } from '../shared/lib/api';
+import SelectField from '../shared/components/SelectField';
 
 interface Issue {
   fingerprint: string;
@@ -47,10 +48,12 @@ function timeAgo(dateStr: string): string {
 }
 
 export default function Issues() {
+  const [activeTab, setActiveTab] = useState<'issues' | 'analytics'>('issues');
   const [issues, setIssues] = useState<Issue[]>([]);
+  const [allIssues, setAllIssues] = useState<Issue[]>([]);
   const [totalItems, setTotalItems] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
-  const [limit] = useState(20);
+  const [limit, setLimit] = useState(20);
   const [statusFilter, setStatusFilter] = useState('');
   const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
   const [issueLogs, setIssueLogs] = useState<IssuLog[]>([]);
@@ -77,13 +80,20 @@ export default function Issues() {
     }
   }, [currentPage, limit, statusFilter]);
 
+  // Fetch all issues (up to 100) for analytics tab
+  useEffect(() => {
+    issuesApi.list({ limit: 100 })
+      .then(({ data }) => setAllIssues(data.data?.items ?? []))
+      .catch(console.error);
+  }, []);
+
   useEffect(() => {
     fetchIssues();
   }, [fetchIssues]);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [statusFilter]);
+  }, [statusFilter, limit]);
 
   const openIssue = async (issue: Issue) => {
     setSelectedIssue(issue);
@@ -114,12 +124,24 @@ export default function Issues() {
     }
   };
 
+  // Analytics computations
+  const top10 = [...allIssues].sort((a, b) => b.occurrence_count - a.occurrence_count).slice(0, 10);
+  const bySource = allIssues.reduce<Record<string, number>>((acc, i) => {
+    acc[i.source_id] = (acc[i.source_id] ?? 0) + i.occurrence_count;
+    return acc;
+  }, {});
+  const maxSourceCount = Math.max(1, ...Object.values(bySource));
+  const levelCounts = { CRITICAL: 0, ERROR: 0, WARN: 0 };
+  allIssues.filter((i) => i.status === 'OPEN').forEach((i) => {
+    if (i.level in levelCounts) levelCounts[i.level as keyof typeof levelCounts]++;
+  });
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-white flex items-center gap-2">
-            <BugPlay className="text-rose-400" size={28} />
+          <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2.5">
+            <BugPlay className="text-rose-400" size={22} />
             Issues
           </h1>
           <p className="text-sm text-zinc-400">
@@ -136,6 +158,100 @@ export default function Issues() {
         </button>
       </div>
 
+      {/* Tab Switcher */}
+      <div className="flex border-b border-white/[0.06]">
+        {([
+          { id: 'issues', label: 'Issues', icon: BugPlay },
+          { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+        ] as const).map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`flex items-center gap-2 px-5 py-3 text-sm font-medium transition-all border-b-2 -mb-px ${
+              activeTab === tab.id
+                ? 'border-purple-500 text-purple-400'
+                : 'border-transparent text-zinc-500 hover:text-zinc-300'
+            }`}
+          >
+            <tab.icon size={15} />
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === 'analytics' && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+          {/* Level Breakdown */}
+          <div className="grid grid-cols-3 gap-4">
+            {[
+              { level: 'CRITICAL', count: levelCounts.CRITICAL, color: 'text-rose-400', bg: 'bg-rose-500/10', border: 'border-rose-500/20' },
+              { level: 'ERROR',    count: levelCounts.ERROR,    color: 'text-red-400',  bg: 'bg-red-500/10',  border: 'border-red-500/20' },
+              { level: 'WARN',     count: levelCounts.WARN,     color: 'text-amber-400',bg: 'bg-amber-500/10',border: 'border-amber-500/20' },
+            ].map((l) => (
+              <div key={l.level} className={`p-4 rounded-2xl border ${l.bg} ${l.border}`}>
+                <p className={`text-2xl font-bold ${l.color}`}>{l.count}</p>
+                <p className="text-xs text-zinc-400 mt-0.5">Open {l.level}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Top 10 Error Messages */}
+          <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
+            <h3 className="text-sm font-semibold text-zinc-200 mb-4">Top 10 Most Frequent Errors</h3>
+            {top10.length === 0 ? (
+              <p className="text-zinc-500 text-sm">No issues found.</p>
+            ) : (
+              <div className="space-y-3">
+                {top10.map((issue, i) => (
+                  <div key={issue.fingerprint} className="flex items-start gap-3">
+                    <span className="text-xs font-bold text-zinc-600 w-5 shrink-0 pt-0.5">{i + 1}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-zinc-200 truncate">{issue.message_sample}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded border ${LEVEL_STYLES[issue.level] ?? 'text-zinc-400 border-zinc-500/20'}`}>{issue.level}</span>
+                        <span className="text-xs text-zinc-500">{issue.category}</span>
+                      </div>
+                    </div>
+                    <span className="text-sm font-semibold text-rose-400 shrink-0">{issue.occurrence_count.toLocaleString()}×</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Errors by Source */}
+          <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
+            <h3 className="text-sm font-semibold text-zinc-200 mb-4">Total Occurrences by Source</h3>
+            {Object.keys(bySource).length === 0 ? (
+              <p className="text-zinc-500 text-sm">No data.</p>
+            ) : (
+              <div className="space-y-3">
+                {Object.entries(bySource)
+                  .sort(([, a], [, b]) => b - a)
+                  .map(([sourceId, count]) => (
+                    <div key={sourceId} className="space-y-1.5">
+                      <div className="flex justify-between text-xs">
+                        <span className="text-zinc-400 font-mono truncate max-w-[60%]">{sourceId}</span>
+                        <span className="text-zinc-300 font-semibold">{count.toLocaleString()}</span>
+                      </div>
+                      <div className="h-2 rounded-full bg-white/[0.04] overflow-hidden">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${(count / maxSourceCount) * 100}%` }}
+                          transition={{ duration: 0.6, ease: 'easeOut' }}
+                          className="h-full rounded-full bg-rose-500/60"
+                        />
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            )}
+          </div>
+        </motion.div>
+      )}
+
+      {activeTab === 'issues' && (
+        <>
       {/* Status Filter */}
       <div className="flex items-center gap-2 flex-wrap">
         <Filter size={14} className="text-zinc-500" />
@@ -268,8 +384,22 @@ export default function Issues() {
         </div>
 
         {/* Pagination */}
-        <div className="p-4 border-t border-white/[0.05] flex items-center justify-between gap-4">
-          <span className="text-sm text-zinc-400">{totalItems.toLocaleString()} total issues</span>
+        <div className="p-4 border-t border-white/[0.05] flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2 text-sm text-zinc-400">
+            <span>Show</span>
+            <SelectField
+              value={limit}
+              onChange={(e) => { setLimit(Number(e.target.value)); setCurrentPage(1); }}
+              wrapperClassName="w-24"
+            >
+              <option value="10">10</option>
+              <option value="20">20</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+              <option value="99999">All</option>
+            </SelectField>
+            <span>of {totalItems.toLocaleString()} issues</span>
+          </div>
           <div className="flex items-center gap-4">
             <span className="text-sm text-zinc-400">
               Page <span className="text-zinc-100">{currentPage}</span> of{' '}
@@ -286,6 +416,8 @@ export default function Issues() {
           </div>
         </div>
       </motion.div>
+        </>
+      )}
 
       {/* Issue Detail Modal */}
       <AnimatePresence>

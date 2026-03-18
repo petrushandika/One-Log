@@ -4,6 +4,9 @@ import Logs from '../pages/Logs';
 import Sources from '../pages/Sources';
 import Audit from '../pages/Audit';
 import Issues from '../pages/Issues';
+import APM from '../pages/APM';
+import Status from '../pages/Status';
+import Config from '../pages/Config';
 import Login from '../pages/Login';
 import ProtectedRoute from '../shared/components/ProtectedRoute';
 import { Terminal } from 'lucide-react';
@@ -33,9 +36,12 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <Overview /> },
       { path: 'logs', element: <Logs /> },
-      { path: 'sources', element: <Sources /> },
-      { path: 'audit', element: <Audit /> },
       { path: 'issues', element: <Issues /> },
+      { path: 'apm', element: <APM /> },
+      { path: 'status', element: <Status /> },
+      { path: 'sources', element: <Sources /> },
+      { path: 'config', element: <Config /> },
+      { path: 'audit', element: <Audit /> },
     ],
   },
   {

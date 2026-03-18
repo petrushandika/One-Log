@@ -63,11 +63,18 @@ export const logsApi = {
     category?: string;
     page?: number;
     limit?: number;
+    from?: string;
+    to?: string;
   } = {}) => api.get('/logs', { params }),
   getByID: (id: number) => api.get(`/logs/${id}`),
   analyze: (id: number) => api.post(`/logs/${id}/analyze`),
-  export: (params: { source_id?: string; level?: string; category?: string } = {}) =>
-    api.get('/logs/export', { params, responseType: 'blob' }),
+  export: (params: {
+    source_id?: string;
+    level?: string;
+    category?: string;
+    from?: string;
+    to?: string;
+  } = {}) => api.get('/logs/export', { params, responseType: 'blob' }),
 };
 
 // ─── Activity ────────────────────────────────────────────────────────────────
@@ -109,6 +116,21 @@ export const issuesApi = {
 // ─── Status (public) ─────────────────────────────────────────────────────────
 export const statusApi = {
   getPublic: () => api.get('/status'),
+};
+
+// ─── Config ──────────────────────────────────────────────────────────────────
+export const configApi = {
+  list: (sourceId: string, params: { environment?: string; reveal?: boolean } = {}) =>
+    api.get(`/sources/${sourceId}/configs`, { params }),
+  save: (sourceId: string, data: { key: string; value: string; is_secret?: boolean; environment?: string }) =>
+    api.post(`/sources/${sourceId}/configs`, data),
+  history: (sourceId: string, params: { environment?: string } = {}) =>
+    api.get(`/sources/${sourceId}/configs/history`, { params }),
+};
+
+// ─── Chat (AI Copilot) ───────────────────────────────────────────────────────
+export const chatApi = {
+  send: (message: string) => api.post<{ data: { reply: string } }>('/chat', { message }),
 };
 
 export default api;

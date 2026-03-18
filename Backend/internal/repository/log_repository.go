@@ -11,7 +11,7 @@ import (
 // Definition LogRepository interface
 type LogRepository interface {
 	Create(log *domain.LogEntry) error
-	FindAll(limit int, offset int, sourceID, level, category string, userID uint) ([]domain.LogEntry, int64, error)
+	FindAll(limit int, offset int, sourceID, level, category string, userID uint, from, to *time.Time) ([]domain.LogEntry, int64, error)
 	FindByID(id uint) (*domain.LogEntry, error)
 	Update(log *domain.LogEntry) error
 	DeleteOlderThan(days int) error
@@ -48,7 +48,7 @@ func (r *logRepository) Create(log *domain.LogEntry) error {
 	return r.db.Create(log).Error
 }
 
-func (r *logRepository) FindAll(limit int, offset int, sourceID, level, category string, userID uint) ([]domain.LogEntry, int64, error) {
+func (r *logRepository) FindAll(limit int, offset int, sourceID, level, category string, userID uint, from, to *time.Time) ([]domain.LogEntry, int64, error) {
 	var logs []domain.LogEntry
 	var total int64
 	query := r.db.Model(&domain.LogEntry{})
@@ -65,6 +65,12 @@ func (r *logRepository) FindAll(limit int, offset int, sourceID, level, category
 	}
 	if category != "" {
 		query = query.Where("log_entries.category = ?", category)
+	}
+	if from != nil {
+		query = query.Where("log_entries.created_at >= ?", *from)
+	}
+	if to != nil {
+		query = query.Where("log_entries.created_at <= ?", *to)
 	}
 
 	err := query.Count(&total).Error
@@ -396,7 +402,7 @@ FROM log_entries
 	args := []interface{}{}
 
 	joins := ""
-	where := "WHERE log_entries.category = 'PERFORMANCE' AND log_entries.created_at >= ? AND (log_entries.context ? 'duration_ms')"
+	where := "WHERE log_entries.category = 'PERFORMANCE' AND log_entries.created_at >= ? AND jsonb_exists(log_entries.context, 'duration_ms')"
 	args = append(args, since)
 
 	if ownerUserID > 0 {

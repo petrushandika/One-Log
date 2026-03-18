@@ -40,7 +40,7 @@ Fondasi sistem: terima log, simpan, tampilkan, dan notifikasi.
 - [x] Setup React 19 + Vite 7 + Tailwind v4 (Feature-Based structure)
 - [x] Login page + JWT session
 - [x] Overview dashboard — stats cards
-- [x] Log Table + filter (source, level, category, date)
+- [x] Log Table + filter (source, level, category, date range)
 - [x] Log Detail modal — JSON viewer + stack trace
 - [x] **AI "Analyze" Button** — Manual trigger on log selection
 - [x] Sources Management page
@@ -137,7 +137,7 @@ Catat setiap perubahan data penting di aplikasi client (CMS, Absensi, dll.) seba
 
 ## ✅ Fase 3 — Performance Monitoring (APM)
 
-**Status**: Implemented (backend complete; APM dashboard page pending)
+**Status**: Implemented
 
 Jangan hanya catat **kapan** error terjadi — catat juga **seberapa lambat** sistem berjalan.
 
@@ -175,8 +175,8 @@ Jangan hanya catat **kapan** error terjadi — catat juga **seberapa lambat** si
 
 ### APM Dashboard
 
-- [ ] **APM Overview Page** — halaman khusus performance di frontend
-- [ ] **Per-Source APM** — pilih source lalu lihat latency trend, error rate, slow query
+- [x] **APM Overview Page** — halaman khusus performance di frontend
+- [x] **Per-Source APM** — pilih source lalu lihat latency trend per endpoint
 - [ ] **Apdex Score** (future) — skor kepuasan performa agregat berdasarkan threshold
 
 ---
@@ -217,15 +217,16 @@ func (w *HealthCheckWorker) RunLoop() {
 ### Public / Internal Status Page
 
 - [x] **Public Status Page** — `GET /api/status` endpoint tersedia tanpa autentikasi
+- [x] **Status Page UI** — halaman `/status` di dashboard: source cards dengan badge ONLINE/DEGRADED/OFFLINE/MAINTENANCE, auto-refresh 60 detik
 - [ ] **URL**: `https://status.ulam.your-domain.com` atau `https://ulam.your-domain.com/status`
-- [ ] **Tampilan**: Nama source, status badge (Online/Down), uptime % 30 hari terakhir, incident history
+- [ ] **Tampilan publik**: uptime % 30 hari terakhir, incident history
 - [ ] **Embed Widget** — badge status yang bisa di-embed di README atau halaman lain
 
 ---
 
 ## ✅ Fase 5 — Error Grouping & Smart Analysis
 
-**Status**: Implemented (backend + Issues frontend page)
+**Status**: Implemented
 
 Agar tidak pusing membaca ribuan baris log yang sama — kelompokkan dan analisis secara otomatis.
 
@@ -240,17 +241,18 @@ Agar tidak pusing membaca ribuan baris log yang sama — kelompokkan dan analisi
 
 ### Error Analytics
 
-- [ ] **"Source mana yang paling sering error?"** — bar chart ranking error count per source
-- [ ] **"Jam berapa error paling sering terjadi?"** — heatmap per jam dalam seminggu
-- [ ] **"Error apa yang paling sering muncul?"** — top 10 error messages
-- [ ] **Error Rate Trend** — persentase log yang error vs total per hari
+- [x] **"Source mana yang paling sering error?"** — CSS progress bar ranking occurrence count per source (Issues › Analytics tab)
+- [ ] **"Jam berapa error paling sering terjadi?"** — heatmap per jam dalam seminggu <!-- backlog -->
+- [x] **"Error apa yang paling sering muncul?"** — top 10 error messages (Issues › Analytics tab)
+- [x] **Level breakdown** — badge count CRITICAL/ERROR/WARN untuk open issues (Issues › Analytics tab)
+- [ ] **Error Rate Trend** — persentase log yang error vs total per hari <!-- backlog -->
 
 ### AI Integration
 
-- [ ] **AI Daily Digest** — LLM merangkum error/anomali hari ini dalam bahasa natural (dikirim via email)
-- [ ] **AI Error Deduplication** — gunakan embedding untuk mengelompokkan error yang semantically similar (bukan hanya exact match)
-- [ ] **Prompt Context** — sertakan framework, bahasa, dan error history agar AI suggestion lebih relevan
-- [ ] **AI Copilot (Chatbot)** — Panel asisten pintar untuk bertanya bebas (contoh: *"Rangkum kejadian 7 Februari jam 1 siang"* atau *"Cek siapa ganti saldo klien"*) via Natural Language Processing (NLP) yang langsung diterjemahkan ke kueri database.
+- [x] **AI Copilot (Chatbot)** — Floating chat widget (purple, `POST /api/chat`) dengan Groq llama-3.3-70b; system prompt project-aware dengan live stats (total logs, ERROR/CRITICAL count, open issues)
+- [ ] **AI Daily Digest** — LLM merangkum error/anomali hari ini dalam bahasa natural (dikirim via email) <!-- backlog -->
+- [ ] **AI Error Deduplication** — gunakan embedding untuk mengelompokkan error yang semantically similar (bukan hanya exact match) <!-- backlog -->
+- [ ] **Prompt Context** — sertakan framework, bahasa, dan error history agar AI suggestion lebih relevan <!-- backlog -->
 
 ```text
 Contoh AI Suggestion output:
@@ -270,7 +272,7 @@ Stack: main.connectDB() at db.go:45
 
 ## ✅ Fase 6 — Centralized Configuration Management
 
-**Status**: Implemented (API + encryption backend; Config UI pending)
+**Status**: Implemented
 
 Kelola semua konfigurasi aplikasi-aplikasi Anda dari satu tempat — tanpa harus SSH ke setiap server.
 
@@ -306,10 +308,10 @@ func WatchConfig(sourceSlug string, interval time.Duration, onUpdate func(map[st
 
 ### Dashboard Config Management
 
-- [ ] **Config Editor UI** — edit config per source langsung dari dashboard (dengan diff view)
-- [ ] **Secret Toggle** — nilai secret ditampilkan sebagai `****`, bisa "reveal" dengan konfirmasi
-- [ ] **Rollback** — rollback config ke versi sebelumnya dengan satu klik
-- [ ] **Config Audit Trail** — siapa yang mengubah config apa, kapan (terintegrasi dengan Fase 2)
+- [x] **Config Editor UI** — halaman `/config` di dashboard, edit config per source dengan slide-over panel
+- [x] **Secret Toggle** — nilai secret ditampilkan sebagai `••••••••`, bisa "reveal" dengan klik Eye icon
+- [x] **Rollback** — rollback config ke versi sebelumnya dari tab History dengan satu klik
+- [ ] **Config Audit Trail** — siapa yang mengubah config apa, kapan (terintegrasi dengan Fase 2) <!-- backlog -->
 
 ---
 

@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Filter, Search, ChevronRight, X, Sparkles, ChevronLeft, Download } from 'lucide-react';
+import { Filter, Search, ChevronRight, X, Sparkles, ChevronLeft, Download, ScrollText } from 'lucide-react';
+import SelectField from '../shared/components/SelectField';
 import { logsApi, sourcesApi } from '../shared/lib/api';
 
 interface Log {
@@ -38,7 +39,7 @@ export default function Logs() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalLogs, setTotalLogs] = useState(0);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [filters, setFilters] = useState({ level: '', source_id: '', category: '' });
+  const [filters, setFilters] = useState({ level: '', source_id: '', category: '', from: '', to: '' });
   const [searchQuery, setSearchQuery] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [aiResponse, setAiResponse] = useState<string | null>(null);
@@ -56,6 +57,8 @@ export default function Logs() {
         source_id: filters.source_id || undefined,
         level: filters.level || undefined,
         category: filters.category || undefined,
+        from: filters.from ? new Date(filters.from).toISOString() : undefined,
+        to: filters.to ? new Date(filters.to).toISOString() : undefined,
         page: currentPage,
         limit,
       });
@@ -121,6 +124,8 @@ export default function Logs() {
         source_id: filters.source_id || undefined,
         level: filters.level || undefined,
         category: filters.category || undefined,
+        from: filters.from ? new Date(filters.from).toISOString() : undefined,
+        to: filters.to ? new Date(filters.to).toISOString() : undefined,
       });
       const url = URL.createObjectURL(new Blob([response.data], { type: 'text/csv' }));
       const a = document.createElement('a');
@@ -148,7 +153,10 @@ export default function Logs() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-white">Log Explorer</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2.5">
+            <ScrollText size={22} className="text-purple-400" />
+            Log Explorer
+          </h1>
           <p className="text-sm text-zinc-400">
             {totalLogs.toLocaleString()} total logs
           </p>
@@ -197,43 +205,31 @@ export default function Logs() {
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="p-4 rounded-xl bg-white/[0.02] border border-white/5 backdrop-blur-sm grid grid-cols-1 md:grid-cols-3 gap-4"
+              className="p-4 rounded-xl bg-white/[0.02] border border-white/5 backdrop-blur-sm grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4"
             >
               <div>
-                <label className="block text-xs font-medium text-zinc-400 mb-1">Level</label>
-                <select
-                  value={filters.level}
-                  onChange={(e) => setFilters({ ...filters, level: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg bg-white/[0.03] border border-white/5 text-zinc-200 focus:outline-none text-sm"
-                >
+                <label className="block text-xs font-medium text-zinc-400 mb-1.5">Level</label>
+                <SelectField value={filters.level} onChange={(e) => setFilters({ ...filters, level: e.target.value })}>
                   <option value="">All Levels</option>
                   <option value="CRITICAL">Critical</option>
                   <option value="ERROR">Error</option>
                   <option value="WARN">Warning</option>
                   <option value="INFO">Info</option>
                   <option value="DEBUG">Debug</option>
-                </select>
+                </SelectField>
               </div>
               <div>
-                <label className="block text-xs font-medium text-zinc-400 mb-1">Source</label>
-                <select
-                  value={filters.source_id}
-                  onChange={(e) => setFilters({ ...filters, source_id: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg bg-white/[0.03] border border-white/5 text-zinc-200 focus:outline-none text-sm"
-                >
+                <label className="block text-xs font-medium text-zinc-400 mb-1.5">Source</label>
+                <SelectField value={filters.source_id} onChange={(e) => setFilters({ ...filters, source_id: e.target.value })}>
                   <option value="">All Sources</option>
                   {sources.map((s) => (
                     <option key={s.id} value={s.id}>{s.name}</option>
                   ))}
-                </select>
+                </SelectField>
               </div>
               <div>
-                <label className="block text-xs font-medium text-zinc-400 mb-1">Category</label>
-                <select
-                  value={filters.category}
-                  onChange={(e) => setFilters({ ...filters, category: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg bg-white/[0.03] border border-white/5 text-zinc-200 focus:outline-none text-sm"
-                >
+                <label className="block text-xs font-medium text-zinc-400 mb-1.5">Category</label>
+                <SelectField value={filters.category} onChange={(e) => setFilters({ ...filters, category: e.target.value })}>
                   <option value="">All Categories</option>
                   <option value="SYSTEM_ERROR">System Error</option>
                   <option value="AUTH_EVENT">Auth Event</option>
@@ -241,8 +237,36 @@ export default function Logs() {
                   <option value="SECURITY">Security</option>
                   <option value="PERFORMANCE">Performance</option>
                   <option value="AUDIT_TRAIL">Audit Trail</option>
-                </select>
+                </SelectField>
               </div>
+              <div>
+                <label className="block text-xs font-medium text-zinc-400 mb-1">From</label>
+                <input
+                  type="datetime-local"
+                  value={filters.from}
+                  onChange={(e) => setFilters({ ...filters, from: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg bg-white/[0.03] border border-white/5 text-zinc-200 focus:outline-none text-sm [color-scheme:dark]"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-zinc-400 mb-1">To</label>
+                <input
+                  type="datetime-local"
+                  value={filters.to}
+                  onChange={(e) => setFilters({ ...filters, to: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg bg-white/[0.03] border border-white/5 text-zinc-200 focus:outline-none text-sm [color-scheme:dark]"
+                />
+              </div>
+              {(filters.from || filters.to) && (
+                <div className="md:col-span-3 flex">
+                  <button
+                    onClick={() => setFilters({ ...filters, from: '', to: '' })}
+                    className="text-xs text-zinc-500 hover:text-zinc-200 transition-colors"
+                  >
+                    Clear date range
+                  </button>
+                </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
@@ -322,16 +346,17 @@ export default function Logs() {
         <div className="p-4 border-t border-white/[0.05] flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2 text-sm text-zinc-400">
             <span>Show</span>
-            <select
+            <SelectField
               value={limit}
               onChange={(e) => { setLimit(Number(e.target.value)); setCurrentPage(1); }}
-              className="px-2 py-1 rounded bg-white/[0.04] border border-white/[0.08] text-zinc-200 focus:outline-none"
+              wrapperClassName="w-24"
             >
               <option value="10">10</option>
               <option value="20">20</option>
               <option value="50">50</option>
               <option value="100">100</option>
-            </select>
+              <option value="99999">All</option>
+            </SelectField>
             <span>of {totalLogs.toLocaleString()} entries</span>
           </div>
 

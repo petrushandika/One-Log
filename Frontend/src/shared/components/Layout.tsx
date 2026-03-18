@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Link, useLocation, Outlet, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutGrid, FileText, Settings, ShieldAlert, LogOut, Terminal, Menu, X, BugPlay } from 'lucide-react';
+import { LayoutGrid, FileText, ShieldAlert, LogOut, Terminal, Menu, X, BugPlay, Activity, Radio, Server, SlidersHorizontal } from 'lucide-react';
+import ChatWidget from './ChatWidget';
 
 export default function Layout() {
   const location = useLocation();
@@ -13,13 +14,41 @@ export default function Layout() {
      navigate('/login');
   };
 
-  const menuItems = [
-    { title: 'Overview', icon: LayoutGrid, path: '/' },
-    { title: 'Logs', icon: FileText, path: '/logs' },
-    { title: 'Issues', icon: BugPlay, path: '/issues' },
-    { title: 'Sources', icon: Settings, path: '/sources' },
-    { title: 'Audit Trail', icon: ShieldAlert, path: '/audit' },
+  const menuSections = [
+    {
+      label: 'Observe',
+      items: [
+        { title: 'Overview', icon: LayoutGrid, path: '/' },
+        { title: 'Logs', icon: FileText, path: '/logs' },
+        { title: 'Issues', icon: BugPlay, path: '/issues' },
+        { title: 'APM', icon: Activity, path: '/apm' },
+        { title: 'Status', icon: Radio, path: '/status' },
+      ],
+    },
+    {
+      label: 'Manage',
+      items: [
+        { title: 'Sources', icon: Server, path: '/sources' },
+        { title: 'Config', icon: SlidersHorizontal, path: '/config' },
+      ],
+    },
+    {
+      label: 'Compliance',
+      items: [
+        { title: 'Audit Trail', icon: ShieldAlert, path: '/audit' },
+      ],
+    },
   ];
+
+  const breadcrumbMap: Record<string, string> = {
+    '/logs': 'Logs',
+    '/issues': 'Issues',
+    '/apm': 'APM',
+    '/status': 'Status',
+    '/sources': 'Sources',
+    '/config': 'Config',
+    '/audit': 'Audit Trail',
+  };
 
   return (
     <div className="flex bg-[#09090b] min-h-screen">
@@ -33,24 +62,33 @@ export default function Layout() {
             <h1 className="text-xl font-bold tracking-tight text-white">One Log</h1>
           </div>
 
-          <nav className="space-y-1">
-            {menuItems.map((item) => {
-              const isActive = location.pathname === item.path;
-              return (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
-                    isActive
-                      ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20'
-                      : 'text-zinc-400 hover:bg-white/3 hover:text-zinc-200 border border-transparent'
-                  }`}
-                >
-                  <item.icon size={18} />
-                  <span>{item.title}</span>
-                </Link>
-              );
-            })}
+          <nav className="space-y-0">
+            {menuSections.map((section) => (
+              <div key={section.label}>
+                <p className="px-4 pt-5 pb-1.5 text-[10px] font-semibold uppercase tracking-widest text-zinc-600">
+                  {section.label}
+                </p>
+                <div className="space-y-0.5">
+                  {section.items.map((item) => {
+                    const isActive = location.pathname === item.path;
+                    return (
+                      <Link
+                        key={item.path}
+                        to={item.path}
+                        className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
+                          isActive
+                            ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20'
+                            : 'text-zinc-400 hover:bg-white/[0.03] hover:text-zinc-200 border border-transparent'
+                        }`}
+                      >
+                        <item.icon size={17} />
+                        <span>{item.title}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </nav>
         </div>
 
@@ -103,25 +141,34 @@ export default function Layout() {
                   </button>
                 </div>
 
-                <nav className="space-y-1">
-                  {menuItems.map((item) => {
-                    const isActive = location.pathname === item.path;
-                    return (
-                      <Link
-                        key={item.path}
-                        to={item.path}
-                        onClick={() => setIsSidebarOpen(false)}
-                        className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium ${
-                          isActive
-                            ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20'
-                            : 'text-zinc-400 hover:bg-white/3'
-                        }`}
-                      >
-                        <item.icon size={18} />
-                        <span>{item.title}</span>
-                      </Link>
-                    );
-                  })}
+                <nav className="space-y-0">
+                  {menuSections.map((section) => (
+                    <div key={section.label}>
+                      <p className="px-4 pt-5 pb-1.5 text-[10px] font-semibold uppercase tracking-widest text-zinc-600">
+                        {section.label}
+                      </p>
+                      <div className="space-y-0.5">
+                        {section.items.map((item) => {
+                          const isActive = location.pathname === item.path;
+                          return (
+                            <Link
+                              key={item.path}
+                              to={item.path}
+                              onClick={() => setIsSidebarOpen(false)}
+                              className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium ${
+                                isActive
+                                  ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20'
+                                  : 'text-zinc-400 hover:bg-white/[0.03] border border-transparent'
+                              }`}
+                            >
+                              <item.icon size={17} />
+                              <span>{item.title}</span>
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
                 </nav>
               </div>
 
@@ -151,12 +198,9 @@ export default function Layout() {
               <Link to="/" className="hover:text-zinc-200 transition-colors">Home</Link>
               {location.pathname !== '/' && (
                 <>
-                  <span className="text-zinc-600">&gt;</span>
+                  <span className="text-zinc-600">/</span>
                   <span className="text-zinc-200 font-semibold">
-                    {location.pathname === '/logs' ? 'Logs' :
-                     location.pathname === '/issues' ? 'Issues' :
-                     location.pathname === '/sources' ? 'Sources' :
-                     location.pathname === '/audit' ? 'Audit Trail' : 'Page'}
+                    {breadcrumbMap[location.pathname] ?? 'Page'}
                   </span>
                 </>
               )}
@@ -174,6 +218,9 @@ export default function Layout() {
           <Outlet />
         </main>
       </div>
+
+      {/* AI Chat — rendered outside scroll containers so it always sits fixed bottom-right */}
+      <ChatWidget />
     </div>
   );
 }

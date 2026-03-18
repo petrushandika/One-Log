@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { ShieldAlert, Search, ChevronLeft, ChevronRight, AlertTriangle, Info, ShieldCheck } from 'lucide-react';
 import { activityApi } from '../shared/lib/api';
+import SelectField from '../shared/components/SelectField';
 
 interface ActivityLog {
   id: number;
@@ -34,7 +35,7 @@ export default function Audit() {
   const [activities, setActivities] = useState<ActivityLog[]>([]);
   const [totalItems, setTotalItems] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
-  const [limit] = useState(20);
+  const [limit, setLimit] = useState(20);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -79,8 +80,8 @@ export default function Audit() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-white flex items-center gap-2">
-          <ShieldAlert className="text-purple-400" size={28} />
+        <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2.5">
+          <ShieldAlert className="text-purple-400" size={22} />
           Audit Trail
         </h1>
         <p className="text-sm text-zinc-400">
@@ -172,9 +173,21 @@ export default function Audit() {
 
         {/* Pagination Footer */}
         <div className="p-4 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-4">
-          <span className="text-sm text-zinc-400">
-            Showing {displayed.length} of {totalItems.toLocaleString()} events
-          </span>
+          <div className="flex items-center gap-2 text-sm text-zinc-400">
+            <span>Show</span>
+            <SelectField
+              value={limit}
+              onChange={(e) => { setLimit(Number(e.target.value)); setCurrentPage(1); }}
+              wrapperClassName="w-24"
+            >
+              <option value="10">10</option>
+              <option value="20">20</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+              <option value="99999">All</option>
+            </SelectField>
+            <span>of {totalItems.toLocaleString()} events</span>
+          </div>
           <div className="flex items-center gap-4">
             <span className="text-sm text-zinc-400">
               Page <span className="text-zinc-100">{currentPage}</span> of{' '}
