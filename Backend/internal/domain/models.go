@@ -10,6 +10,7 @@ import (
 // Source presentation application or service send log
 type Source struct {
 	ID        string         `gorm:"type:uuid;default:gen_random_uuid();primaryKey" json:"id"`
+	UserID    uint           `gorm:"index;not null" json:"user_id"` // Owner of this source
 	Name      string         `gorm:"type:varchar(100);not null" json:"name"`
 	APIKey    string         `gorm:"type:varchar(255);uniqueIndex;not null" json:"-"`
 	HealthURL string         `gorm:"type:varchar(255)" json:"health_url"` // Fase 4: Status page
@@ -43,4 +44,15 @@ type SourceConfig struct {
 	Value     string    `gorm:"type:text" json:"value"`
 	IsSecret  bool      `gorm:"default:false" json:"is_secret"`
 	UpdatedAt time.Time `json:"updated_at"`
+}
+
+// User represents administrator for frontend login
+type User struct {
+	ID        uint           `gorm:"primaryKey" json:"id"`
+	Email     string         `gorm:"type:varchar(255);uniqueIndex;not null" json:"email"`
+	Password  string         `gorm:"type:varchar(255);not null" json:"-"`
+	Name      string         `gorm:"type:varchar(100)" json:"name"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 }

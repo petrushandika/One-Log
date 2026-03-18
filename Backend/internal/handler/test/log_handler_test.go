@@ -27,7 +27,7 @@ func (m *mockLogService) IngestLog(req domain.IngestLogRequest, sourceID string)
 	return nil
 }
 
-func (m *mockLogService) GetLogs(limit int, page int, sourceID string, level string, category string) ([]domain.LogEntry, int64, error) {
+func (m *mockLogService) GetLogs(limit int, page int, sourceID string, level string, category string, userID uint) ([]domain.LogEntry, int64, error) {
 	return nil, 0, nil
 }
 
@@ -49,7 +49,7 @@ func (m *mockLogService) ManualAnalyzeLog(id uint) (*domain.LogEntry, error) {
 	}, nil
 }
 
-func (m *mockLogService) GetStatsOverview() (map[string]interface{}, error) {
+func (m *mockLogService) GetStatsOverview(userID uint) (map[string]interface{}, error) {
 	return map[string]interface{}{"total": 10}, nil
 }
 

@@ -11,10 +11,10 @@ import (
 )
 
 type SourceService interface {
-	CreateSource(req domain.CreateSourceRequest) (*domain.Source, string, error)
-	GetSources() ([]domain.Source, error)
-	GetSourceByID(id string) (*domain.Source, error)
-	RotateAPIKey(id string) (string, error)
+	CreateSource(req domain.CreateSourceRequest, userID uint) (*domain.Source, string, error)
+	GetSources(userID uint) ([]domain.Source, error)
+	GetSourceByID(id string, userID uint) (*domain.Source, error)
+	RotateAPIKey(id string, userID uint) (string, error)
 }
 
 type sourceService struct {
@@ -25,7 +25,7 @@ func NewSourceService(repo repository.SourceRepository) SourceService {
 	return &sourceService{repo: repo}
 }
 
-func (s *sourceService) CreateSource(req domain.CreateSourceRequest) (*domain.Source, string, error) {
+func (s *sourceService) CreateSource(req domain.CreateSourceRequest, userID uint) (*domain.Source, string, error) {
 	// Generate random API key (32 bytes = 64 hex characters)
 	bytes := make([]byte, 32)
 	if _, err := rand.Read(bytes); err != nil {
@@ -35,6 +35,7 @@ func (s *sourceService) CreateSource(req domain.CreateSourceRequest) (*domain.So
 	hashedAPIKey := utils.HashAPIKey(rawAPIKey)
 
 	source := domain.Source{
+		UserID: userID,
 		Name:   req.Name,
 		APIKey: hashedAPIKey, // Store only the SHA-256 hash in DB, never raw
 	}
@@ -46,12 +47,12 @@ func (s *sourceService) CreateSource(req domain.CreateSourceRequest) (*domain.So
 	return &source, rawAPIKey, nil
 }
 
-func (s *sourceService) GetSources() ([]domain.Source, error) {
-	return s.repo.FindAll()
+func (s *sourceService) GetSources(userID uint) ([]domain.Source, error) {
+	return s.repo.FindAll(userID)
 }
 
-func (s *sourceService) GetSourceByID(id string) (*domain.Source, error) {
-	source, err := s.repo.FindByID(id)
+func (s *sourceService) GetSourceByID(id string, userID uint) (*domain.Source, error) {
+	source, err := s.repo.FindByID(id, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -61,8 +62,8 @@ func (s *sourceService) GetSourceByID(id string) (*domain.Source, error) {
 	return source, nil
 }
 
-func (s *sourceService) RotateAPIKey(id string) (string, error) {
-	source, err := s.repo.FindByID(id)
+func (s *sourceService) RotateAPIKey(id string, userID uint) (string, error) {
+	source, err := s.repo.FindByID(id, userID)
 	if err != nil {
 		return "", err
 	}

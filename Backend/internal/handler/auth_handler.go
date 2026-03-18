@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"crypto/subtle"
 	"net/http"
 	"os"
 	"time"
@@ -11,15 +10,18 @@ import (
 	"github.com/petrushandika/one-log/internal/domain"
 	"github.com/petrushandika/one-log/internal/service"
 	"github.com/petrushandika/one-log/pkg/utils"
+	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 )
 
 // AuthHandler handles the admin login process.
 type AuthHandler struct {
+	db     *gorm.DB
 	logSvc service.LogService
 }
 
-func NewAuthHandler(logSvc service.LogService) *AuthHandler {
-	return &AuthHandler{logSvc: logSvc}
+func NewAuthHandler(db *gorm.DB, logSvc service.LogService) *AuthHandler {
+	return &AuthHandler{db: db, logSvc: logSvc}
 }
 
 func (h *AuthHandler) Login(c *gin.Context) {
@@ -31,37 +33,15 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	adminEmail := os.Getenv("ADMIN_EMAIL")
-	adminPassword := os.Getenv("ADMIN_PASSWORD")
+	var user domain.User
+	if err := h.db.Where("email = ?", req.Email).First(&user).Error; err != nil {
+		h.logFailedAttempt(c, req.Email)
+		utils.Error(c, http.StatusUnauthorized, "Invalid credentials", nil)
+		return
+	}
 
-	// Use constant time comparison to mitigate timing attacks on the login route
-	emailMatch := subtle.ConstantTimeCompare([]byte(req.Email), []byte(adminEmail)) == 1
-	passMatch := subtle.ConstantTimeCompare([]byte(req.Password), []byte(adminPassword)) == 1
-
-	if !emailMatch || !passMatch {
-		clientIP := c.ClientIP()
-
-		// Log failed attempt audit trail
-		_ = h.logSvc.IngestLog(domain.IngestLogRequest{
-			Category:  "AUTH_EVENT",
-			Level:     "WARN",
-			Message:   "Failed login attempt for admin panel",
-			IPAddress: clientIP,
-			Context:   map[string]interface{}{"attempted_email": req.Email},
-		}, "00000000-0000-0000-0000-000000000001") // Mock ULAM Internal UUID
-
-		// Fase 2: Brute Force Detection
-		isBruteForce, _ := h.logSvc.CheckBruteForce(clientIP)
-		if isBruteForce {
-			_ = h.logSvc.IngestLog(domain.IngestLogRequest{
-				Category:  "SECURITY",
-				Level:     "CRITICAL",
-				Message:   "Brute force attempt detected from IP: " + clientIP,
-				IPAddress: clientIP,
-				Context:   map[string]interface{}{"note": "Exceeded 5 failed attempts in 10 minutes"},
-			}, "00000000-0000-0000-0000-000000000001")
-		}
-
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
+		h.logFailedAttempt(c, req.Email)
 		utils.Error(c, http.StatusUnauthorized, "Invalid credentials", nil)
 		return
 	}
@@ -70,8 +50,9 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	secret := []byte(os.Getenv("JWT_SECRET"))
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"email": req.Email,
-		"exp":   time.Now().Add(time.Hour * 24).Unix(),
+		"user_id": user.ID,
+		"email":   req.Email,
+		"exp":     time.Now().Add(time.Hour * 24).Unix(),
 	})
 
 	tokenString, err := token.SignedString(secret)
@@ -89,8 +70,35 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		Context:   map[string]interface{}{"email": req.Email},
 	}, "00000000-0000-0000-0000-000000000001")
 
+	// Set HTTP Only Cookie
+	// name, value, maxAge (sec), path, domain, secure, httpOnly
+	c.SetCookie("token", tokenString, 3600*24, "/", "", false, true)
+
 	utils.Success(c, http.StatusOK, "Login successful", gin.H{
 		"token": tokenString,
 		"email": req.Email,
 	})
+}
+
+func (h *AuthHandler) logFailedAttempt(c *gin.Context, email string) {
+	clientIP := c.ClientIP()
+	_ = h.logSvc.IngestLog(domain.IngestLogRequest{
+		Category:  "AUTH_EVENT",
+		Level:     "WARN",
+		Message:   "Failed login attempt for admin panel",
+		IPAddress: clientIP,
+		Context:   map[string]interface{}{"attempted_email": email},
+	}, "00000000-0000-0000-0000-000000000001")
+
+	// Brute Force Detection
+	isBruteForce, _ := h.logSvc.CheckBruteForce(clientIP)
+	if isBruteForce {
+		_ = h.logSvc.IngestLog(domain.IngestLogRequest{
+			Category:  "SECURITY",
+			Level:     "CRITICAL",
+			Message:   "Brute force attempt detected from IP: " + clientIP,
+			IPAddress: clientIP,
+			Context:   map[string]interface{}{"note": "Exceeded 5 failed attempts in 10 minutes"},
+		}, "00000000-0000-0000-0000-000000000001")
+	}
 }

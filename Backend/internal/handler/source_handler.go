@@ -23,7 +23,8 @@ func (h *SourceHandler) Create(c *gin.Context) {
 		return
 	}
 
-	source, rawAPIKey, err := h.service.CreateSource(req)
+	userID := c.GetUint("user_id")
+	source, rawAPIKey, err := h.service.CreateSource(req, userID)
 	if err != nil {
 		utils.Error(c, http.StatusInternalServerError, "Failed to create source", err.Error())
 		return
@@ -37,7 +38,8 @@ func (h *SourceHandler) Create(c *gin.Context) {
 }
 
 func (h *SourceHandler) GetAll(c *gin.Context) {
-	sources, err := h.service.GetSources()
+	userID := c.GetUint("user_id")
+	sources, err := h.service.GetSources(userID)
 	if err != nil {
 		utils.Error(c, http.StatusInternalServerError, "Failed to fetch sources", err.Error())
 		return
@@ -48,7 +50,8 @@ func (h *SourceHandler) GetAll(c *gin.Context) {
 
 func (h *SourceHandler) GetByID(c *gin.Context) {
 	id := c.Param("id")
-	source, err := h.service.GetSourceByID(id)
+	userID := c.GetUint("user_id")
+	source, err := h.service.GetSourceByID(id, userID)
 
 	if err != nil {
 		if err.Error() == "source not found" {
@@ -74,7 +77,8 @@ func (h *SourceHandler) shouldBindJSON(c *gin.Context, req interface{}) error {
 
 func (h *SourceHandler) RotateKey(c *gin.Context) {
 	id := c.Param("id")
-	rawAPIKey, err := h.service.RotateAPIKey(id)
+	userID := c.GetUint("user_id")
+	rawAPIKey, err := h.service.RotateAPIKey(id, userID)
 
 	if err != nil {
 		if err.Error() == "source not found" {

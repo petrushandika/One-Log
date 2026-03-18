@@ -4,12 +4,33 @@ import (
 	"log"
 
 	"github.com/petrushandika/one-log/internal/domain"
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
 // Seed populates the database with initial dummy data layout sets setups.
 func Seed(db *gorm.DB) {
 	log.Println("Database seeding started...")
+
+	// 0. Create Default Admin
+	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte("admin123"), bcrypt.DefaultCost)
+	adminUser := domain.User{
+		Email:    "admin@example.com",
+		Password: string(hashedPassword),
+		Name:     "System Admin",
+	}
+
+	var userCount int64
+	db.Model(&domain.User{}).Where("email = ?", adminUser.Email).Count(&userCount)
+	if userCount == 0 {
+		if err := db.Create(&adminUser).Error; err != nil {
+			log.Printf("Failed to seed admin: %v", err)
+		} else {
+			log.Println("Admin user seeded: admin@example.com / admin123")
+		}
+	} else {
+		log.Println("Admin user already exists, skipping...")
+	}
 
 	// 1. Create Dummy Sources
 	sources := []domain.Source{
