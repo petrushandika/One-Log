@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SlidersHorizontal, Eye, EyeOff, Edit3, X, History, ChevronRight, RotateCcw, Lock, Unlock } from 'lucide-react';
 import SelectField from '../shared/components/SelectField';
@@ -62,13 +62,7 @@ export default function Config() {
     }).catch(console.error);
   }, []);
 
-  useEffect(() => {
-    if (!selectedSource) return;
-    fetchConfigs();
-    if (activeTab === 'history') fetchHistory();
-  }, [selectedSource, activeTab]);
-
-  const fetchConfigs = async () => {
+  const fetchConfigs = useCallback(async () => {
     if (!selectedSource) return;
     setIsLoading(true);
     try {
@@ -79,9 +73,9 @@ export default function Config() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [selectedSource]);
 
-  const fetchHistory = async () => {
+  const fetchHistory = useCallback(async () => {
     if (!selectedSource) return;
     try {
       const { data } = await configApi.history(selectedSource.id);
@@ -89,7 +83,13 @@ export default function Config() {
     } catch (err) {
       console.error('Failed to fetch history', err);
     }
-  };
+  }, [selectedSource]);
+
+  useEffect(() => {
+    if (!selectedSource) return;
+    fetchConfigs();
+    if (activeTab === 'history') fetchHistory();
+  }, [selectedSource, activeTab, fetchConfigs, fetchHistory]);
 
   const revealSecret = async (entry: ConfigEntry) => {
     if (revealedKeys.has(entry.id)) {

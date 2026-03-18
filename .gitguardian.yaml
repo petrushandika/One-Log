@@ -1,18 +1,29 @@
 version: 2
 
-# Suppress GitGuardian false positives for dev-only seed keys used in historical commits.
-# These patterns are dummy/placeholder values intentionally used in database seed files
-# for local development and have never been real API keys.
+# Suppress findings for secrets that were already detected in historical commits
+# and have been remediated in current code. These are dev/seed placeholder values
+# that were never real credentials.
+ignore-known-secrets: true
+
 ignore-matches:
+  # Historical keys from Frontend/src/pages/Sources.tsx (commit 914902c)
   - match: "REDACTED_KEY"
     name: "historical-dev-seed-key-auth"
   - match: "REDACTED_KEY"
     name: "historical-dev-seed-key-gate"
   - match: "REDACTED_KEY"
     name: "historical-dev-seed-key-db"
+
+  # Historical keys from Backend/pkg/database/seed.go (commit c0703e9)
   - match: "dev_auth_svc_001"
     name: "dev-seed-key-auth"
   - match: "dev_api_gw_001"
     name: "dev-seed-key-gateway"
   - match: "dev_db_analytics_001"
     name: "dev-seed-key-analytics"
+  - match: "dev_auth_svc_key_001"
+    name: "dev-seed-key-auth-v2"
+  - match: "dev_api_gw_key_001"
+    name: "dev-seed-key-gateway-v2"
+  - match: "dev_db_analytics_key_001"
+    name: "dev-seed-key-analytics-v2"

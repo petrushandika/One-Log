@@ -29,8 +29,9 @@ function CopyableCode({ children }: { children: React.ReactNode }) {
     if (typeof node === 'string') return node;
     if (typeof node === 'number') return String(node);
     if (Array.isArray(node)) return node.map(getText).join('');
-    if (node && typeof node === 'object' && 'props' in (node as React.ReactElement)) {
-      return getText((node as React.ReactElement).props.children);
+    if (node && typeof node === 'object' && 'props' in node) {
+      const el = node as { props: { children?: React.ReactNode } };
+      return getText(el.props.children ?? null);
     }
     return '';
   };
@@ -154,7 +155,7 @@ export default function ChatWidget() {
 
     try {
       const { data } = await chatApi.send(text);
-      const reply = (data as any)?.data?.reply ?? 'Maaf, tidak ada respons.';
+      const reply = data?.data?.reply ?? 'Maaf, tidak ada respons.';
       setMessages((prev) => [...prev, { role: 'assistant', text: reply, time: now() }]);
     } catch {
       setMessages((prev) => [

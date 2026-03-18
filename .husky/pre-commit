@@ -1,14 +1,64 @@
-#!/usr/bin/env sh
-. "$(dirname "$0")/_/husky.sh"
+set -e   # abort immediately if any command exits non-zero
 
-echo "Running Pre-commit Checks..."
+# Resolve the repo root regardless of where git is called from
+ROOT="$(git rev-parse --show-toplevel)"
 
-# 1. Backend Checks
-echo "--- Backend: Lint & Vet ---"
-cd Backend && go fmt ./... && go vet ./... && cd ..
+# ─────────────────────────────────────────────────────────────────────────────
+#  Colour helpers
+# ─────────────────────────────────────────────────────────────────────────────
+RED='\033[0;31m'; GREEN='\033[0;32m'; CYAN='\033[0;36m'; BOLD='\033[1m'; NC='\033[0m'
+step()  { echo "${CYAN}${BOLD}▶ $1${NC}"; }
+ok()    { echo "${GREEN}${BOLD}  ✔ $1${NC}"; }
+fail()  { echo "${RED}${BOLD}  ✖ $1${NC}"; exit 1; }
 
-# 2. Frontend Checks
-echo "--- Frontend: Lint & Type Check ---"
-cd Frontend && npm run lint && npx tsc --noEmit && cd ..
+echo ""
+echo "${BOLD}══════════════════════════════════════════${NC}"
+echo "${BOLD}  Pre-commit quality gate${NC}"
+echo "${BOLD}══════════════════════════════════════════${NC}"
 
-echo "All checks passed!"
+# ─────────────────────────────────────────────────────────────────────────────
+#  BACKEND
+# ─────────────────────────────────────────────────────────────────────────────
+echo ""
+echo "${BOLD}[ Backend — Go ]${NC}"
+
+step "Format (go fmt)"
+cd "$ROOT/Backend"
+go fmt ./... || fail "go fmt failed"
+ok "Formatted"
+
+step "Static analysis (go vet)"
+go vet ./... || fail "go vet found issues"
+ok "Vet passed"
+
+step "Build binary"
+go build -o /tmp/one-log-precommit-check ./cmd/api || fail "go build failed"
+rm -f /tmp/one-log-precommit-check
+ok "Build succeeded"
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  FRONTEND
+# ─────────────────────────────────────────────────────────────────────────────
+echo ""
+echo "${BOLD}[ Frontend — TypeScript / React ]${NC}"
+
+cd "$ROOT/Frontend"
+
+step "ESLint (no errors, no warnings)"
+npm run lint || fail "ESLint failed — fix all errors/warnings before committing"
+ok "Lint clean"
+
+step "TypeScript strict check (tsc --noEmit)"
+npx tsc --noEmit || fail "TypeScript type errors found — fix before committing"
+ok "Type check passed"
+
+step "Production build (tsc -b + vite build)"
+npm run build || fail "Production build failed — fix before committing"
+ok "Build succeeded"
+
+# ─────────────────────────────────────────────────────────────────────────────
+echo ""
+echo "${GREEN}${BOLD}══════════════════════════════════════════${NC}"
+echo "${GREEN}${BOLD}  All checks passed — committing ✔${NC}"
+echo "${GREEN}${BOLD}══════════════════════════════════════════${NC}"
+echo ""
