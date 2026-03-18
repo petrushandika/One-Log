@@ -112,8 +112,8 @@ MVP berfokus pada **4 kapabilitas inti** yang memberikan nilai langsung tanpa ov
 | `GET`  | `/api/logs/:id`                 | Detail log by ID                         | JWT     |
 | `GET`  | `/api/sources`                  | List semua source terdaftar              | JWT     |
 | `POST` | `/api/sources`                  | Daftarkan source baru + generate API key | JWT     |
-| `GET`  | `/api/sources/:slug`            | Detail source                            | JWT     |
-| `POST` | `/api/sources/:slug/rotate-key` | Rotate API key                           | JWT     |
+| `GET`  | `/api/sources/:id`              | Detail source                            | JWT     |
+| `POST` | `/api/sources/:id/rotate-key`   | Rotate API key                           | JWT     |
 | `POST` | `/api/auth/login`               | Admin login                              | Public  |
 
 ---
@@ -139,12 +139,12 @@ MVP berfokus pada **4 kapabilitas inti** yang memberikan nilai langsung tanpa ov
 
 **Goal**: Dashboard bisa dilihat dan dipakai
 
-- [ ] Setup React (Vite) + React Router
-- [ ] Admin login page + JWT session
-- [ ] API endpoint `GET /v1/logs` dengan pagination & filter
-- [ ] Log table component dengan filter UI
-- [ ] Log detail modal dengan JSON viewer
-- [ ] Overview stats (total per level per source)
+- [x] Setup React (Vite) + React Router
+- [x] Admin login page + JWT session
+- [x] API endpoint `GET /v1/logs` dengan pagination & filter
+- [x] Log table component dengan filter UI
+- [x] Log detail modal dengan JSON viewer
+- [x] Overview stats (total per level per source)
 
 **Deliverable**: Dashboard live dan bisa filter log
 
@@ -157,8 +157,9 @@ MVP berfokus pada **4 kapabilitas inti** yang memberikan nilai langsung tanpa ov
 - [ ] SMTP email integration
 - [ ] Email template HTML
 - [ ] Throttling logic (in-memory)
-- [ ] `POST /api/sources` untuk manage source API keys
-- [ ] Error handling & logging di backend sendiri
+- [x] `POST /api/sources` untuk manage source API keys
+- [x] `POST /api/sources/:id/rotate-key` untuk rotate API keys
+- [x] Error handling & logging di backend sendiri
 - [ ] Deployment: Docker Compose (API + DB)
 - [ ] README dokumentasi
 

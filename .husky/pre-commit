@@ -1,0 +1,14 @@
+#!/usr/bin/env sh
+. "$(dirname "$0")/_/husky.sh"
+
+echo "Running Pre-commit Checks..."
+
+# 1. Backend Checks
+echo "--- Backend: Lint & Vet ---"
+cd Backend && go fmt ./... && go vet ./... && cd ..
+
+# 2. Frontend Checks
+echo "--- Frontend: Lint & Type Check ---"
+cd Frontend && npm run lint && npx tsc --noEmit && cd ..
+
+echo "All checks passed!"
