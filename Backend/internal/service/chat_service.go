@@ -148,8 +148,8 @@ If asked to write code, write working, production-quality code.
 
 RESPONSE RULES:
   • Reply in Markdown. Use ## headers, bullet lists, and fenced code blocks.
-  • For code examples, always specify the language (` + "```go, ```sql, ```bash" + `, etc.)
-  • When referencing log context fields, use backtick formatting (e.g. ` + "`duration_ms`" + `).
+  • For code examples, always specify the language (`+"```go, ```sql, ```bash"+`, etc.)
+  • When referencing log context fields, use backtick formatting (e.g. `+"`duration_ms`"+`).
   • Do NOT fabricate log content, source IDs, or metrics beyond what is in the snapshot above.
   • Be concise for simple questions; be thorough for complex ones.
   • Match the user's language: reply in Indonesian if asked in Indonesian, English if in English.`,
