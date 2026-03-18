@@ -74,7 +74,7 @@ func MaskJSONContext(rawJSON []byte) ([]byte, error) {
 	}
 
 	maskedData := MaskSensitiveData(data)
-	
+
 	maskedJSON, err := json.Marshal(maskedData)
 	if err != nil {
 		return rawJSON, nil

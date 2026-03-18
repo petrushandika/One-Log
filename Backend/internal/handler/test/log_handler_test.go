@@ -48,7 +48,7 @@ func TestIngestLog_Success(t *testing.T) {
 	logHandler := handler.NewLogHandler(mService)
 
 	router := gin.Default()
-	
+
 	// Mock the middleware by directly setting source_id into context
 	router.Use(func(c *gin.Context) {
 		c.Set("source_id", "test-source-uuid-1234")
@@ -103,7 +103,7 @@ func TestIngestLog_ValidationError(t *testing.T) {
 
 	// Invalid Payload (Missing Category, Invalid Level)
 	payload := map[string]interface{}{
-		"level":   "BAD_LEVEL", 
+		"level":   "BAD_LEVEL",
 		"message": "",
 	}
 
