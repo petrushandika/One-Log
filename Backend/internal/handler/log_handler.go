@@ -55,28 +55,39 @@ func (h *LogHandler) shouldBindJSON(c *gin.Context, req interface{}) error {
 	return nil
 }
 
-// GetAll handles GET /api/v1/logs requests
+// GetAll handles GET /api/logs requests
 func (h *LogHandler) GetAll(c *gin.Context) {
-	// Simple query params parsing
 	limitStr := c.DefaultQuery("limit", "20")
 	pageStr := c.DefaultQuery("page", "1")
 	sourceID := c.Query("source_id")
 	level := c.Query("level")
 	category := c.Query("category")
+	fromStr := c.Query("from")
+	toStr := c.Query("to")
 
 	var limit, page int
-	// Parse basic using Sscanf, ignoring error and falling back to default inside service
 	_, _ = fmt.Sscanf(limitStr, "%d", &limit)
 	_, _ = fmt.Sscanf(pageStr, "%d", &page)
 
+	var fromTime, toTime *time.Time
+	if fromStr != "" {
+		if t, err := time.Parse(time.RFC3339, fromStr); err == nil {
+			fromTime = &t
+		}
+	}
+	if toStr != "" {
+		if t, err := time.Parse(time.RFC3339, toStr); err == nil {
+			toTime = &t
+		}
+	}
+
 	userID := c.GetUint("user_id")
-	logs, total, err := h.service.GetLogs(limit, page, sourceID, level, category, userID)
+	logs, total, err := h.service.GetLogs(limit, page, sourceID, level, category, userID, fromTime, toTime)
 	if err != nil {
 		utils.Error(c, http.StatusInternalServerError, "Failed to fetch logs", err.Error())
 		return
 	}
 
-	// Meta info for client pagination
 	utils.Success(c, http.StatusOK, "Logs retrieved successfully", gin.H{
 		"items": logs,
 		"meta": gin.H{
@@ -148,14 +159,28 @@ func (h *LogHandler) GetActivitySummary(c *gin.Context) {
 	utils.Success(c, http.StatusOK, "Activity summary retrieved successfully", summary)
 }
 
-// ExportCSV handles GET /api/v1/logs/export requests
+// ExportCSV handles GET /api/logs/export requests
 func (h *LogHandler) ExportCSV(c *gin.Context) {
 	sourceID := c.Query("source_id")
 	level := c.Query("level")
 	category := c.Query("category")
+	fromStr := c.Query("from")
+	toStr := c.Query("to")
 	userID := c.GetUint("user_id")
 
-	logs, err := h.service.ExportLogs(sourceID, level, category, userID)
+	var fromTime, toTime *time.Time
+	if fromStr != "" {
+		if t, err := time.Parse(time.RFC3339, fromStr); err == nil {
+			fromTime = &t
+		}
+	}
+	if toStr != "" {
+		if t, err := time.Parse(time.RFC3339, toStr); err == nil {
+			toTime = &t
+		}
+	}
+
+	logs, err := h.service.ExportLogs(sourceID, level, category, userID, fromTime, toTime)
 	if err != nil {
 		utils.Error(c, http.StatusInternalServerError, "Failed to export logs", err.Error())
 		return

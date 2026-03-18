@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/petrushandika/one-log/internal/domain"
 	"github.com/petrushandika/one-log/internal/repository"
@@ -13,13 +14,13 @@ import (
 
 type LogService interface {
 	IngestLog(req domain.IngestLogRequest, sourceID string) error
-	GetLogs(limit int, page int, sourceID string, level string, category string, userID uint) ([]domain.LogEntry, int64, error)
+	GetLogs(limit int, page int, sourceID string, level string, category string, userID uint, from, to *time.Time) ([]domain.LogEntry, int64, error)
 	GetLogByID(id uint) (*domain.LogEntry, error)
 	ManualAnalyzeLog(id uint) (*domain.LogEntry, error)
 	GetStatsOverview(userID uint) (map[string]interface{}, error)
 	CheckBruteForce(ip string) (bool, error)
 	GetActivitySummary(userID uint) (map[string]interface{}, error)
-	ExportLogs(sourceID string, level string, category string, userID uint) ([]domain.LogEntry, error)
+	ExportLogs(sourceID string, level string, category string, userID uint, from, to *time.Time) ([]domain.LogEntry, error)
 }
 
 type logService struct {
@@ -97,7 +98,7 @@ func (s *logService) IngestLog(req domain.IngestLogRequest, sourceID string) err
 	return nil
 }
 
-func (s *logService) GetLogs(limit int, page int, sourceID string, level string, category string, userID uint) ([]domain.LogEntry, int64, error) {
+func (s *logService) GetLogs(limit int, page int, sourceID string, level string, category string, userID uint, from, to *time.Time) ([]domain.LogEntry, int64, error) {
 	if limit <= 0 {
 		limit = 20
 	}
@@ -106,7 +107,7 @@ func (s *logService) GetLogs(limit int, page int, sourceID string, level string,
 	}
 	offset := (page - 1) * limit
 
-	return s.repo.FindAll(limit, offset, sourceID, level, category, userID)
+	return s.repo.FindAll(limit, offset, sourceID, level, category, userID, from, to)
 }
 
 func (s *logService) GetLogByID(id uint) (*domain.LogEntry, error) {
@@ -134,8 +135,7 @@ func (s *logService) GetActivitySummary(userID uint) (map[string]interface{}, er
 	return s.repo.GetActivitySummary(userID)
 }
 
-func (s *logService) ExportLogs(sourceID string, level string, category string, userID uint) ([]domain.LogEntry, error) {
-	// Fetch with high limit to export everything
-	logs, _, err := s.repo.FindAll(100000, 0, sourceID, level, category, userID)
+func (s *logService) ExportLogs(sourceID string, level string, category string, userID uint, from, to *time.Time) ([]domain.LogEntry, error) {
+	logs, _, err := s.repo.FindAll(100000, 0, sourceID, level, category, userID, from, to)
 	return logs, err
 }

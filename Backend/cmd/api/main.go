@@ -13,6 +13,7 @@ import (
 	"github.com/petrushandika/one-log/internal/repository"
 	"github.com/petrushandika/one-log/internal/service"
 	"github.com/petrushandika/one-log/internal/worker"
+	"github.com/petrushandika/one-log/pkg/ai"
 	"github.com/petrushandika/one-log/pkg/database"
 	"github.com/petrushandika/one-log/pkg/utils"
 )
@@ -75,6 +76,9 @@ func main() {
 	configRepo := repository.NewConfigRepository(db)
 	configService := service.NewConfigService(configRepo)
 	configHandler := handler.NewConfigHandler(configService, sourceService)
+
+	chatService := service.NewChatService(logRepo, ai.NewGroqClient())
+	chatHandler := handler.NewChatHandler(chatService)
 
 	// 5. Start Background Workers
 	retentionWorker := worker.NewRetentionWorker(logRepo, 30) // 30 days retention
@@ -161,6 +165,9 @@ func main() {
 			admin.GET("/sources/:id", sourceHandler.GetByID)
 			admin.PATCH("/sources/:id", sourceHandler.Update)
 			admin.POST("/sources/:id/rotate-key", sourceHandler.RotateKey)
+
+			// AI Chat Copilot (Phase 5)
+			admin.POST("/chat", chatHandler.Ask)
 		}
 	}
 
