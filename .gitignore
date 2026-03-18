@@ -12,3 +12,6 @@ Frontend/dist/
 # Credentials
 .env
 **/.env
+
+# IDE
+.cursor/
