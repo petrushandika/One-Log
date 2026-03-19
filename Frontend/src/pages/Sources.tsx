@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Server, Key, CheckCircle, XCircle, X, Copy, RefreshCw, Wifi, WifiOff, Eye, EyeOff, Settings, AlertCircle, Trash2 } from 'lucide-react';
 import { sourcesApi } from '../shared/lib/api';
+import ConfirmDialog from '../shared/components/ConfirmDialog';
 
 interface Source {
   id: string;
@@ -34,6 +35,12 @@ export default function Sources() {
   // Only populated on create or rotate — never from list API (key is server-masked)
   const [revealedKeys, setRevealedKeys] = useState<Map<string, RevealedKey>>(new Map());
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  
+  // Dialog states
+  const [deleteDialog, setDeleteDialog] = useState<{ isOpen: boolean; source: Source | null }>({
+    isOpen: false,
+    source: null,
+  });
 
   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
     setToast({ message, type });
@@ -174,10 +181,15 @@ export default function Sources() {
     rotateKeyMutation.mutate(id);
   };
 
-  const handleDelete = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this source? This action cannot be undone.')) {
-      deleteMutation.mutate(id);
+  const handleDelete = async (source: Source) => {
+    setDeleteDialog({ isOpen: true, source });
+  };
+
+  const confirmDelete = () => {
+    if (deleteDialog.source) {
+      deleteMutation.mutate(deleteDialog.source.id);
     }
+    setDeleteDialog({ isOpen: false, source: null });
   };
 
   const toggleKeyVisibility = (id: string) => {
@@ -364,7 +376,7 @@ export default function Sources() {
                   </button>
                   <div className="flex items-center gap-3">
                     <button
-                      onClick={() => handleDelete(source.id)}
+                      onClick={() => handleDelete(source)}
                       disabled={deleteMutation.isPending}
                       className="flex items-center gap-1.5 text-xs font-semibold text-rose-400 hover:text-rose-300 transition-colors disabled:opacity-50"
                     >
@@ -527,6 +539,18 @@ export default function Sources() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={deleteDialog.isOpen}
+        onClose={() => setDeleteDialog({ isOpen: false, source: null })}
+        onConfirm={confirmDelete}
+        title="Delete Source"
+        message={`Are you sure you want to delete "${deleteDialog.source?.name}"? This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        type="danger"
+      />
     </div>
   );
 }
