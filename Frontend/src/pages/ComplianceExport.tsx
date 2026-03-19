@@ -1,8 +1,7 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
 import { FileDown, Download, Clock, CheckCircle, AlertCircle } from 'lucide-react';
-import { useQuery, useMutation } from '@tanstack/react-query';
-import { activityApi } from '../shared/lib/api';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { activityApi, sourcesApi } from '../shared/lib/api';
 import SelectField from '../shared/components/SelectField';
 
 interface ComplianceExport {
@@ -17,23 +16,43 @@ interface ComplianceExport {
   created_at: string;
 }
 
+interface Source {
+  id: string;
+  name: string;
+}
+
 export default function ComplianceExport() {
   const [sourceId, setSourceId] = useState('');
   const [format, setFormat] = useState('PDF');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  const queryClient = useQueryClient();
 
-  const { data: exports, isLoading } = useQuery({
+  // Fetch compliance exports
+  const { data: exports, isLoading: exportsLoading } = useQuery({
     queryKey: ['compliance-exports'],
     queryFn: () => activityApi.getComplianceExports({ page: 1, limit: 20 }),
   });
 
+  // Fetch sources for dropdown
+  const { data: sourcesData, isLoading: sourcesLoading } = useQuery({
+    queryKey: ['sources'],
+    queryFn: () => sourcesApi.getAll(),
+  });
+
   const exportList: ComplianceExport[] = exports?.data?.items || [];
+  const sources: Source[] = sourcesData?.data?.data || [];
 
   const requestExport = useMutation({
     mutationFn: (data: { source_id: string; format: string; date_from: string; date_to: string }) =>
       activityApi.requestComplianceExport(data),
+    onSuccess: () => {
+      // Refresh exports list after successful request
+      queryClient.invalidateQueries({ queryKey: ['compliance-exports'] });
+    },
   });
+
+  const isLoading = exportsLoading || sourcesLoading;
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -62,24 +81,20 @@ export default function ComplianceExport() {
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="p-8 space-y-6"
-    >
+    <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-white flex items-center gap-3">
-          <FileDown className="w-7 h-7 text-purple-400" />
-          Compliance Export
-        </h1>
-        <p className="text-zinc-400 mt-1">
-          Export audit trails for compliance and regulatory requirements
-        </p>
+      <div className="flex items-center gap-3">
+        <div className="p-2 rounded-xl bg-purple-500/10 text-purple-400">
+          <FileDown size={24} />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold text-white">Compliance Export</h1>
+          <p className="text-sm text-zinc-400">Export audit trails for compliance and regulatory requirements</p>
+        </div>
       </div>
 
       {/* Export Request Form */}
-      <div className="bg-[#0c0c0c] border border-white/10 rounded-lg p-6">
+      <div className="bg-white/2 border border-white/5 rounded-xl p-6">
         <h2 className="text-lg font-semibold text-white mb-4">Request New Export</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
@@ -87,9 +102,15 @@ export default function ComplianceExport() {
             <SelectField
               value={sourceId}
               onChange={(e) => setSourceId(e.target.value)}
+              disabled={sourcesLoading}
             >
-              <option value="">Select Source</option>
+              <option value="">{sourcesLoading ? 'Loading sources...' : 'Select Source'}</option>
               <option value="all">All Sources</option>
+              {sources.map((source) => (
+                <option key={source.id} value={source.id}>
+                  {source.name}
+                </option>
+              ))}
             </SelectField>
           </div>
           <div>
@@ -140,46 +161,46 @@ export default function ComplianceExport() {
       </div>
 
       {/* Export History */}
-      <div className="bg-[#0c0c0c] border border-white/10 rounded-lg overflow-hidden">
-        <div className="px-6 py-4 border-b border-white/10">
+      <div className="bg-white/2 border border-white/5 rounded-xl overflow-hidden">
+        <div className="px-6 py-4 border-b border-white/5">
           <h2 className="text-lg font-semibold text-white">Export History</h2>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-white/5">
               <tr>
-                <th className="text-left py-3 px-6 text-sm font-medium text-zinc-400">ID</th>
-                <th className="text-left py-3 px-6 text-sm font-medium text-zinc-400">Source</th>
-                <th className="text-left py-3 px-6 text-sm font-medium text-zinc-400">Format</th>
-                <th className="text-left py-3 px-6 text-sm font-medium text-zinc-400">Date Range</th>
-                <th className="text-left py-3 px-6 text-sm font-medium text-zinc-400">Status</th>
-                <th className="text-left py-3 px-6 text-sm font-medium text-zinc-400">Created</th>
-                <th className="text-left py-3 px-6 text-sm font-medium text-zinc-400">Action</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold uppercase text-zinc-500">ID</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold uppercase text-zinc-500">Source</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold uppercase text-zinc-500">Format</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold uppercase text-zinc-500">Date Range</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold uppercase text-zinc-500">Status</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold uppercase text-zinc-500">Created</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold uppercase text-zinc-500">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
               {isLoading ? (
                 <tr>
-                  <td colSpan={7} className="py-8 text-center text-zinc-400">
+                  <td colSpan={7} className="px-4 py-8 text-center text-zinc-400">
                     Loading exports...
                   </td>
                 </tr>
               ) : exportList.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-8 text-center text-zinc-400">
+                  <td colSpan={7} className="px-4 py-8 text-center text-zinc-400">
                     No exports found
                   </td>
                 </tr>
               ) : (
                 exportList.map((item) => (
                   <tr key={item.id} className="hover:bg-white/5 transition-colors">
-                    <td className="py-3 px-6 text-sm text-zinc-400">#{item.id}</td>
-                    <td className="py-3 px-6 text-sm text-white">{item.source_id}</td>
-                    <td className="py-3 px-6 text-sm text-zinc-300">{item.format}</td>
-                    <td className="py-3 px-6 text-sm text-zinc-400">
+                    <td className="px-4 py-3 text-sm text-zinc-400">#{item.id}</td>
+                    <td className="px-4 py-3 text-sm text-white">{item.source_id}</td>
+                    <td className="px-4 py-3 text-sm text-zinc-300">{item.format}</td>
+                    <td className="px-4 py-3 text-sm text-zinc-400">
                       {new Date(item.date_from).toLocaleDateString()} - {new Date(item.date_to).toLocaleDateString()}
                     </td>
-                    <td className="py-3 px-6">
+                    <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         {getStatusIcon(item.status)}
                         <span className={`text-sm capitalize ${getStatusColor(item.status)}`}>
@@ -187,10 +208,10 @@ export default function ComplianceExport() {
                         </span>
                       </div>
                     </td>
-                    <td className="py-3 px-6 text-sm text-zinc-400">
+                    <td className="px-4 py-3 text-sm text-zinc-400">
                       {new Date(item.created_at).toLocaleString()}
                     </td>
-                    <td className="py-3 px-6">
+                    <td className="px-4 py-3">
                       {item.status === 'completed' && item.file_url && (
                         <button
                           onClick={() => window.open(item.file_url, '_blank')}
@@ -208,6 +229,6 @@ export default function ComplianceExport() {
           </table>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }

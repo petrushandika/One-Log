@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Server, Plus, Key, CheckCircle, XCircle, X, Copy, RefreshCw, Wifi, WifiOff, Eye, EyeOff, Settings } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Server, Key, CheckCircle, XCircle, X, Copy, RefreshCw, Wifi, WifiOff, Eye, EyeOff, Settings, AlertCircle } from 'lucide-react';
 import { sourcesApi } from '../shared/lib/api';
 
 interface Source {
@@ -24,120 +25,139 @@ function maskKey(key: string): string {
 }
 
 export default function Sources() {
-  const [sources, setSources] = useState<Source[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedSettingsSource, setSelectedSettingsSource] = useState<Source | null>(null);
   const [newSource, setNewSource] = useState({ name: '', health_url: '' });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isRegenerating, setIsRegenerating] = useState<string | null>(null);
-  const [isTogglingStatus, setIsTogglingStatus] = useState<string | null>(null);
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   // Map of sourceId → { key: plaintext, visible: bool }
   // Only populated on create or rotate — never from list API (key is server-masked)
   const [revealedKeys, setRevealedKeys] = useState<Map<string, RevealedKey>>(new Map());
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
   };
 
-  const fetchSources = useCallback(async () => {
-    setIsLoading(true);
-    try {
+  // Fetch sources with React Query
+  const { data: sources = [], isLoading, error, refetch } = useQuery({
+    queryKey: ['sources'],
+    queryFn: async () => {
       const { data } = await sourcesApi.getAll();
-      setSources(data.data ?? []);
-    } catch {
-      showToast('Failed to load sources', 'error');
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+      return data.data ?? [];
+    },
+  });
 
-  useEffect(() => { fetchSources(); }, [fetchSources]);
-
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newSource.name.trim()) return;
-    setIsSubmitting(true);
-    try {
-      const { data } = await sourcesApi.create({
-        name: newSource.name.trim(),
-        health_url: newSource.health_url.trim() || undefined,
-      });
-      const rawKey: string = data.data?.api_key ?? '';
-      const newSourceId: string = data.data?.id ?? '';
+  // Create source mutation
+  const createMutation = useMutation({
+    mutationFn: async (payload: { name: string; health_url?: string }) => {
+      const { data } = await sourcesApi.create(payload);
+      return data.data;
+    },
+    onSuccess: (data) => {
+      const rawKey: string = data?.api_key ?? '';
+      const newSourceId: string = data?.id ?? '';
 
       setNewSource({ name: '', health_url: '' });
       setIsModalOpen(false);
-      await fetchSources();
-
+      
       // Reveal the key immediately after creation
       if (rawKey && newSourceId) {
         setRevealedKeys((prev) => new Map(prev).set(newSourceId, { key: rawKey, visible: true }));
       }
+      
+      queryClient.invalidateQueries({ queryKey: ['sources'] });
       showToast('Source registered! Copy your API key below — it won\'t be shown again.');
-    } catch {
+    },
+    onError: () => {
       showToast('Failed to register source', 'error');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+    },
+  });
 
-  const handleUpdate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedSettingsSource) return;
-    setIsSubmitting(true);
-    try {
-      await sourcesApi.update(selectedSettingsSource.id, {
-        name: selectedSettingsSource.name,
-        // only send health_url when it has a value — empty string would fail URL validation
-        ...(selectedSettingsSource.health_url?.trim()
-          ? { health_url: selectedSettingsSource.health_url.trim() }
-          : {}),
-      });
+  // Update source mutation
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, payload }: { id: string; payload: { name?: string; health_url?: string } }) => {
+      await sourcesApi.update(id, payload);
+    },
+    onSuccess: () => {
       showToast('Source updated');
       setSelectedSettingsSource(null);
-      fetchSources();
-    } catch {
+      queryClient.invalidateQueries({ queryKey: ['sources'] });
+    },
+    onError: () => {
       showToast('Failed to update source', 'error');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+    },
+  });
 
-  const handleToggleStatus = async (source: Source) => {
-    const newStatus = source.status === 'ONLINE' ? 'OFFLINE' : 'ONLINE';
-    setIsTogglingStatus(source.id);
-    try {
-      await sourcesApi.update(source.id, { status: newStatus });
-      showToast(`${source.name} is now ${newStatus}`);
-      fetchSources();
-    } catch {
+  // Toggle status mutation
+  const toggleStatusMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      await sourcesApi.update(id, { status });
+    },
+    onSuccess: (_, variables) => {
+      const source = sources.find((s: Source) => s.id === variables.id);
+      showToast(`${source?.name ?? 'Source'} is now ${variables.status}`);
+      queryClient.invalidateQueries({ queryKey: ['sources'] });
+    },
+    onError: () => {
       showToast('Failed to update status', 'error');
-    } finally {
-      setIsTogglingStatus(null);
-    }
-  };
+    },
+  });
 
-  const handleRotateKey = async (id: string) => {
-    setIsRegenerating(id);
-    try {
+  // Rotate key mutation
+  const rotateKeyMutation = useMutation({
+    mutationFn: async (id: string) => {
       const { data } = await sourcesApi.rotateKey(id);
-      const newKey: string = data.data?.new_api_key ?? '';
+      return { id, newKey: data.data?.new_api_key ?? '' };
+    },
+    onSuccess: ({ id, newKey }) => {
       if (newKey) {
         setRevealedKeys((prev) => new Map(prev).set(id, { key: newKey, visible: true }));
         showToast('New API key generated — copy it now, it won\'t be shown again.');
       } else {
         showToast('Key rotated', 'success');
       }
-      fetchSources();
-    } catch {
+      queryClient.invalidateQueries({ queryKey: ['sources'] });
+    },
+    onError: () => {
       showToast('Failed to rotate API key', 'error');
-    } finally {
-      setIsRegenerating(null);
-    }
+    },
+  });
+
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newSource.name.trim()) return;
+    
+    createMutation.mutate({
+      name: newSource.name.trim(),
+      health_url: newSource.health_url.trim() || undefined,
+    });
+  };
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedSettingsSource) return;
+    
+    updateMutation.mutate({
+      id: selectedSettingsSource.id,
+      payload: {
+        name: selectedSettingsSource.name,
+        // only send health_url when it has a value — empty string would fail URL validation
+        ...(selectedSettingsSource.health_url?.trim()
+          ? { health_url: selectedSettingsSource.health_url.trim() }
+          : {}),
+      },
+    });
+  };
+
+  const handleToggleStatus = async (source: Source) => {
+    const newStatus = source.status === 'ONLINE' ? 'OFFLINE' : 'ONLINE';
+    toggleStatusMutation.mutate({ id: source.id, status: newStatus });
+  };
+
+  const handleRotateKey = async (id: string) => {
+    rotateKeyMutation.mutate(id);
   };
 
   const toggleKeyVisibility = (id: string) => {
@@ -160,34 +180,54 @@ export default function Sources() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2.5">
-            <Server size={22} className="text-purple-400" />
-            Sources
-          </h1>
-          <p className="text-sm text-zinc-400 mt-0.5">
-            {sources.length} registered application{sources.length !== 1 ? 's' : ''}
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-xl bg-purple-500/10 text-purple-400">
+            <Server size={24} />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-white">Sources</h1>
+            <p className="text-sm text-zinc-400">{sources.length} registered application{sources.length !== 1 ? 's' : ''}</p>
+          </div>
         </div>
         <button
           onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-purple-600 text-white text-sm font-semibold shadow-lg shadow-purple-500/20 hover:bg-purple-500 transition-all active:scale-95"
+          className="px-4 py-2.5 rounded-xl bg-purple-600 text-white text-sm font-semibold shadow-lg shadow-purple-500/20 hover:bg-purple-500 transition-all active:scale-95"
         >
-          <Plus size={16} />
           Register Source
         </button>
       </div>
+
+      {/* Error Message */}
+      {error && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 flex items-center gap-3"
+        >
+          <AlertCircle size={20} />
+          <div className="flex-1">
+            <p className="font-medium">Failed to load sources</p>
+          </div>
+          <button
+            onClick={() => refetch()}
+            className="px-3 py-1.5 text-sm bg-red-500/20 hover:bg-red-500/30 rounded-lg transition-colors flex items-center gap-1"
+          >
+            <RefreshCw size={14} />
+            Retry
+          </button>
+        </motion.div>
+      )}
 
       {/* Source Grid */}
       {isLoading ? (
         <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="h-56 rounded-2xl bg-white/2 border border-white/5 animate-pulse" />
+            <div key={i} className="h-56 rounded-xl bg-white/2 border border-white/5 animate-pulse" />
           ))}
         </div>
-      ) : sources.length === 0 ? (
+      ) : sources.length === 0 && !error ? (
         <div className="flex flex-col items-center justify-center py-20 text-zinc-500">
-          <div className="p-4 rounded-2xl bg-white/2 border border-white/5 mb-4">
+          <div className="p-4 rounded-xl bg-white/2 border border-white/5 mb-4">
             <Server size={32} className="opacity-40" />
           </div>
           <p className="text-sm font-medium">No sources registered yet</p>
@@ -201,7 +241,7 @@ export default function Sources() {
           animate={{ opacity: 1 }}
           className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3"
         >
-          {sources.map((source, i) => {
+          {sources.map((source: Source, i: number) => {
             const revealed = revealedKeys.get(source.id);
             const isOnline = source.status === 'ONLINE';
             const isDegraded = source.status === 'DEGRADED';
@@ -212,7 +252,7 @@ export default function Sources() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.04 }}
-                className="p-5 rounded-2xl bg-white/2 border border-white/5 flex flex-col gap-4"
+                className="p-5 rounded-xl bg-white/2 border border-white/5 flex flex-col gap-4"
               >
                 {/* Top row: name + status badge */}
                 <div className="flex items-start justify-between gap-2">
@@ -237,7 +277,7 @@ export default function Sources() {
                 </div>
 
                 {/* API Key section */}
-                <div className="rounded-xl bg-black/30 border border-white/6 overflow-hidden">
+                <div className="rounded-xl bg-black/30 border border-white/5 overflow-hidden">
                   <div className="flex items-center gap-1.5 px-3 py-2 border-b border-white/5">
                     <Key size={12} className="text-purple-400 shrink-0" />
                     <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">API Key</span>
@@ -266,11 +306,11 @@ export default function Sources() {
                         </button>
                         <button
                           onClick={() => handleRotateKey(source.id)}
-                          disabled={isRegenerating === source.id}
+                          disabled={rotateKeyMutation.isPending && rotateKeyMutation.variables === source.id}
                           className="p-1.5 rounded-lg hover:bg-white/10 text-purple-400 hover:text-purple-300 transition-colors disabled:opacity-40"
                           title="Rotate key"
                         >
-                          <RefreshCw size={13} className={isRegenerating === source.id ? 'animate-spin' : ''} />
+                          <RefreshCw size={13} className={rotateKeyMutation.isPending && rotateKeyMutation.variables === source.id ? 'animate-spin' : ''} />
                         </button>
                       </div>
                     </div>
@@ -282,12 +322,12 @@ export default function Sources() {
                       </code>
                       <button
                         onClick={() => handleRotateKey(source.id)}
-                        disabled={isRegenerating === source.id}
+                        disabled={rotateKeyMutation.isPending && rotateKeyMutation.variables === source.id}
                         className="shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium bg-purple-600/15 hover:bg-purple-600/25 border border-purple-500/20 text-purple-400 hover:text-purple-300 transition-all disabled:opacity-40"
                         title="Generate new key to reveal"
                       >
-                        <RefreshCw size={11} className={isRegenerating === source.id ? 'animate-spin' : ''} />
-                        {isRegenerating === source.id ? 'Generating...' : 'Rotate & Reveal'}
+                        <RefreshCw size={11} className={rotateKeyMutation.isPending && rotateKeyMutation.variables === source.id ? 'animate-spin' : ''} />
+                        {rotateKeyMutation.isPending && rotateKeyMutation.variables === source.id ? 'Generating...' : 'Rotate & Reveal'}
                       </button>
                     </div>
                   )}
@@ -304,7 +344,7 @@ export default function Sources() {
                   </button>
                   <button
                     onClick={() => handleToggleStatus(source)}
-                    disabled={isTogglingStatus === source.id}
+                    disabled={toggleStatusMutation.isPending}
                     className={`flex items-center gap-1.5 text-xs font-semibold transition-colors disabled:opacity-50 ${
                       isOnline
                         ? 'text-rose-400 hover:text-rose-300'
@@ -312,7 +352,7 @@ export default function Sources() {
                     }`}
                   >
                     {isOnline ? <WifiOff size={13} /> : <Wifi size={13} />}
-                    {isTogglingStatus === source.id ? 'Updating...' : isOnline ? 'Disable' : 'Enable'}
+                    {toggleStatusMutation.isPending ? 'Updating...' : isOnline ? 'Disable' : 'Enable'}
                   </button>
                 </div>
               </motion.div>
@@ -334,7 +374,7 @@ export default function Sources() {
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md p-6 rounded-2xl bg-[#111113] border border-white/8 z-50 shadow-2xl"
+              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md p-6 rounded-xl bg-[#111113] border border-white/5 z-50 shadow-2xl"
             >
               <div className="flex items-center justify-between mb-5">
                 <h3 className="text-lg font-bold text-white">Edit Source</h3>
@@ -349,7 +389,7 @@ export default function Sources() {
                     type="text" required
                     value={selectedSettingsSource.name}
                     onChange={(e) => setSelectedSettingsSource({ ...selectedSettingsSource, name: e.target.value })}
-                    className="w-full px-3 py-2.5 rounded-xl bg-white/3 border border-white/8 text-zinc-200 focus:outline-none focus:border-purple-500/40 text-sm"
+                    className="w-full px-3 py-2.5 rounded-xl bg-white/3 border border-white/5 text-zinc-200 focus:outline-none focus:border-purple-500/40 text-sm"
                   />
                 </div>
                 <div>
@@ -359,15 +399,15 @@ export default function Sources() {
                     value={selectedSettingsSource.health_url ?? ''}
                     onChange={(e) => setSelectedSettingsSource({ ...selectedSettingsSource, health_url: e.target.value })}
                     placeholder="https://api.example.com/health"
-                    className="w-full px-3 py-2.5 rounded-xl bg-white/3 border border-white/8 text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-purple-500/40 text-sm"
+                    className="w-full px-3 py-2.5 rounded-xl bg-white/3 border border-white/5 text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-purple-500/40 text-sm"
                   />
                 </div>
                 <div className="flex gap-3 pt-1">
                   <button type="button" onClick={() => setSelectedSettingsSource(null)} className="flex-1 py-2.5 rounded-xl bg-white/5 text-zinc-300 text-sm hover:bg-white/8 transition-colors">
                     Cancel
                   </button>
-                  <button type="submit" disabled={isSubmitting} className="flex-1 py-2.5 rounded-xl bg-purple-600 text-white text-sm font-semibold hover:bg-purple-500 transition-colors disabled:opacity-50">
-                    {isSubmitting ? 'Saving...' : 'Save Changes'}
+                  <button type="submit" disabled={updateMutation.isPending} className="flex-1 py-2.5 rounded-xl bg-purple-600 text-white text-sm font-semibold hover:bg-purple-500 transition-colors disabled:opacity-50">
+                    {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
                   </button>
                 </div>
               </form>
@@ -389,7 +429,7 @@ export default function Sources() {
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md p-6 rounded-2xl bg-[#111113] border border-white/8 z-50 shadow-2xl"
+              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md p-6 rounded-xl bg-[#111113] border border-white/5 z-50 shadow-2xl"
             >
               <div className="flex items-center justify-between mb-5">
                 <div>
@@ -410,7 +450,7 @@ export default function Sources() {
                     value={newSource.name}
                     onChange={(e) => setNewSource({ ...newSource, name: e.target.value })}
                     placeholder="e.g. Payment Gateway"
-                    className="w-full px-3 py-2.5 rounded-xl bg-white/3 border border-white/8 text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-purple-500/40 text-sm"
+                    className="w-full px-3 py-2.5 rounded-xl bg-white/3 border border-white/5 text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-purple-500/40 text-sm"
                   />
                 </div>
                 <div>
@@ -422,15 +462,15 @@ export default function Sources() {
                     value={newSource.health_url}
                     onChange={(e) => setNewSource({ ...newSource, health_url: e.target.value })}
                     placeholder="https://api.example.com/health"
-                    className="w-full px-3 py-2.5 rounded-xl bg-white/3 border border-white/8 text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-purple-500/40 text-sm"
+                    className="w-full px-3 py-2.5 rounded-xl bg-white/3 border border-white/5 text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-purple-500/40 text-sm"
                   />
                 </div>
                 <div className="flex gap-3 pt-1">
                   <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-2.5 rounded-xl bg-white/5 text-zinc-300 text-sm hover:bg-white/8 transition-colors">
                     Cancel
                   </button>
-                  <button type="submit" disabled={isSubmitting} className="flex-1 py-2.5 rounded-xl bg-purple-600 text-white text-sm font-semibold hover:bg-purple-500 transition-colors disabled:opacity-50">
-                    {isSubmitting ? 'Registering...' : 'Register'}
+                  <button type="submit" disabled={createMutation.isPending} className="flex-1 py-2.5 rounded-xl bg-purple-600 text-white text-sm font-semibold hover:bg-purple-500 transition-colors disabled:opacity-50">
+                    {createMutation.isPending ? 'Registering...' : 'Register'}
                   </button>
                 </div>
               </form>
@@ -452,7 +492,7 @@ export default function Sources() {
                 : 'bg-[#111113] text-rose-400 border-rose-500/20'
             }`}
           >
-            {toast.type === 'success' ? <CheckCircle size={15} /> : <XCircle size={15} />}
+            {toast.type === 'success' ? <CheckCircle size={15} /> : <AlertCircle size={15} />}
             {toast.message}
           </motion.div>
         )}

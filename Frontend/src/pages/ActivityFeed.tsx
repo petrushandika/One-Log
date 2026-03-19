@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
 import { Users, Activity, FileText, Download, Filter } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { activityApi } from '../shared/lib/api';
@@ -62,84 +61,77 @@ export default function ActivityFeed() {
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="p-8 space-y-6"
-    >
+    <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-3">
-            <Users className="w-7 h-7 text-purple-400" />
-            Activity Feed
-          </h1>
-          <p className="text-zinc-400 mt-1">
-            Track all user activities across your applications
-          </p>
+      <div className="flex items-center gap-3">
+        <div className="p-2 rounded-xl bg-purple-500/10 text-purple-400">
+          <Users size={24} />
         </div>
-        <div className="text-sm text-zinc-400">
-          Total Activities: {total.toLocaleString()}
+        <div>
+          <h1 className="text-2xl font-bold text-white">Activity Feed</h1>
+          <p className="text-sm text-zinc-400">Track all user activities across your applications</p>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="flex gap-4 items-center bg-[#0c0c0c] border border-white/10 rounded-lg p-4">
-        <div className="flex items-center gap-2 text-zinc-400">
-          <Filter className="w-4 h-4" />
-          <span className="text-sm">Filters:</span>
+      <div className="bg-white/2 border border-white/5 rounded-xl p-4">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 text-zinc-400">
+            <Filter className="w-4 h-4" />
+            <span className="text-sm">Filters:</span>
+          </div>
+          <SelectField
+            value={action}
+            onChange={(e) => setAction(e.target.value)}
+            className="w-40"
+          >
+            <option value="">All Actions</option>
+            <option value="create">Create</option>
+            <option value="update">Update</option>
+            <option value="delete">Delete</option>
+            <option value="export">Export</option>
+            <option value="view">View</option>
+          </SelectField>
         </div>
-        <SelectField
-          value={action}
-          onChange={(e) => setAction(e.target.value)}
-          className="w-40"
-        >
-          <option value="">All Actions</option>
-          <option value="create">Create</option>
-          <option value="update">Update</option>
-          <option value="delete">Delete</option>
-          <option value="export">Export</option>
-          <option value="view">View</option>
-        </SelectField>
       </div>
 
       {/* Activity Feed Table */}
-      <div className="bg-[#0c0c0c] border border-white/10 rounded-lg overflow-hidden">
+      <div className="bg-white/2 border border-white/5 rounded-xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-white/5">
               <tr>
-                <th className="text-left py-3 px-4 text-sm font-medium text-zinc-400">Action</th>
-                <th className="text-left py-3 px-4 text-sm font-medium text-zinc-400">User</th>
-                <th className="text-left py-3 px-4 text-sm font-medium text-zinc-400">Resource</th>
-                <th className="text-left py-3 px-4 text-sm font-medium text-zinc-400">Source</th>
-                <th className="text-left py-3 px-4 text-sm font-medium text-zinc-400">IP Address</th>
-                <th className="text-left py-3 px-4 text-sm font-medium text-zinc-400">Time</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold uppercase text-zinc-500">Action</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold uppercase text-zinc-500">User</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold uppercase text-zinc-500">Resource</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold uppercase text-zinc-500">Source</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold uppercase text-zinc-500">IP Address</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold uppercase text-zinc-500">Time</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
               {isLoading ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-zinc-400">
+                  <td colSpan={6} className="px-4 py-8 text-center text-zinc-400">
                     Loading activities...
                   </td>
                 </tr>
               ) : error ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-red-400">
+                  <td colSpan={6} className="px-4 py-8 text-center text-red-400">
                     Failed to load activities
                   </td>
                 </tr>
               ) : feedItems.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-zinc-400">
+                  <td colSpan={6} className="px-4 py-8 text-center text-zinc-400">
                     No activities found
                   </td>
                 </tr>
               ) : (
                 feedItems.map((item) => (
                   <tr key={item.id} className="hover:bg-white/5 transition-colors">
-                    <td className="py-3 px-4">
+                    <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         {getActionIcon(item.action)}
                         <span className={`capitalize text-sm ${getActionColor(item.action)}`}>
@@ -147,20 +139,20 @@ export default function ActivityFeed() {
                         </span>
                       </div>
                     </td>
-                    <td className="py-3 px-4 text-sm text-white font-mono">
+                    <td className="px-4 py-3 text-sm text-white font-mono">
                       {item.user_id}
                     </td>
-                    <td className="py-3 px-4">
+                    <td className="px-4 py-3">
                       <div className="text-sm text-white">{item.resource_type}</div>
                       <div className="text-xs text-zinc-500 font-mono">{item.resource_id}</div>
                     </td>
-                    <td className="py-3 px-4 text-sm text-zinc-300">
+                    <td className="px-4 py-3 text-sm text-zinc-300">
                       {item.source_id}
                     </td>
-                    <td className="py-3 px-4 text-sm text-zinc-400 font-mono">
+                    <td className="px-4 py-3 text-sm text-zinc-400 font-mono">
                       {item.ip_address}
                     </td>
-                    <td className="py-3 px-4 text-sm text-zinc-400">
+                    <td className="px-4 py-3 text-sm text-zinc-400">
                       {new Date(item.created_at).toLocaleString()}
                     </td>
                   </tr>
@@ -171,7 +163,7 @@ export default function ActivityFeed() {
         </div>
 
         {/* Pagination */}
-        <div className="flex items-center justify-between px-4 py-3 border-t border-white/10">
+        <div className="flex items-center justify-between px-4 py-3 border-t border-white/5">
           <div className="flex items-center gap-2 text-sm text-zinc-400">
             <span>Rows per page:</span>
             <SelectField
@@ -192,7 +184,7 @@ export default function ActivityFeed() {
             <button
               onClick={() => setPage(p => Math.max(1, p - 1))}
               disabled={page === 1}
-              className="px-3 py-1 text-sm bg-white/5 text-zinc-300 rounded hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-3 py-1.5 text-sm rounded-lg bg-white/5 text-zinc-300 hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Previous
             </button>
@@ -202,13 +194,13 @@ export default function ActivityFeed() {
             <button
               onClick={() => setPage(p => Math.min(totalPages, p + 1))}
               disabled={page >= totalPages}
-              className="px-3 py-1 text-sm bg-white/5 text-zinc-300 rounded hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-3 py-1.5 text-sm rounded-lg bg-white/5 text-zinc-300 hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Next
             </button>
           </div>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }

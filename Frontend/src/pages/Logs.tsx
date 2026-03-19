@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Filter, Search, ChevronRight, X, Sparkles, ChevronLeft, Download, ScrollText, AlertCircle } from 'lucide-react';
+import { Filter, Search, ChevronRight, X, Sparkles, ChevronLeft, ScrollText, AlertCircle, CheckCircle } from 'lucide-react';
 import SelectField from '../shared/components/SelectField';
 import { logsApi, sourcesApi } from '../shared/lib/api';
 import { categoryLabel } from '../shared/lib/utils';
@@ -25,6 +26,11 @@ interface Source {
   name: string;
 }
 
+interface LogsData {
+  items: Log[];
+  total: number;
+}
+
 const LEVEL_STYLES: Record<string, string> = {
   CRITICAL: 'bg-rose-500/10 text-rose-400 border-rose-500/20',
   ERROR: 'bg-red-500/10 text-red-400 border-red-500/20',
@@ -35,27 +41,39 @@ const LEVEL_STYLES: Record<string, string> = {
 };
 
 export default function Logs() {
+  const queryClient = useQueryClient();
   const [selectedLog, setSelectedLog] = useState<Log | null>(null);
   const [limit, setLimit] = useState<number>(20);
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalLogs, setTotalLogs] = useState(0);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [filters, setFilters] = useState({ level: '', source_id: '', category: '', from: '', to: '' });
   const [searchQuery, setSearchQuery] = useState('');
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [aiResponse, setAiResponse] = useState<string | null>(null);
-  const [logs, setLogs] = useState<Log[]>([]);
-  const [sources, setSources] = useState<Source[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isExporting, setIsExporting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
-  const maxPage = Math.max(1, Math.ceil(totalLogs / limit));
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
 
-  const fetchLogs = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
+  // Fetch sources
+  const { data: sources = [] } = useQuery({
+    queryKey: ['sources'],
+    queryFn: async () => {
+      const { data } = await sourcesApi.getAll();
+      return data.data ?? [];
+    },
+  });
+
+  // Fetch logs with pagination
+  const {
+    data: logsData,
+    isLoading,
+    error,
+    refetch
+  } = useQuery<LogsData>({
+    queryKey: ['logs', currentPage, limit, filters],
+    queryFn: async () => {
       const { data } = await logsApi.getLogs({
         source_id: filters.source_id || undefined,
         level: filters.level || undefined,
@@ -65,50 +83,73 @@ export default function Logs() {
         page: currentPage,
         limit,
       });
-      setLogs(data.data?.items ?? []);
-      setTotalLogs(data.data?.meta?.total ?? 0);
-    } catch (err) {
-      console.error('Failed to fetch logs', err);
-      setError('Failed to load logs. Please check your connection.');
-    } finally {
-      setIsLoading(false);
+      return {
+        items: (data.data?.items ?? []) as Log[],
+        total: data.data?.meta?.total ?? 0,
+      };
+    },
+  });
+
+  const logs = logsData?.items ?? [];
+  const totalLogs = logsData?.total ?? 0;
+  const maxPage = Math.max(1, Math.ceil(totalLogs / limit));
+
+  // Track previous filter values to detect changes
+  const prevFiltersRef = useRef(filters);
+  const prevLimitRef = useRef(limit);
+  const isFirstRender = useRef(true);
+  
+  // Reset to page 1 on filter change using flushSync to batch updates
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      prevFiltersRef.current = filters;
+      prevLimitRef.current = limit;
+      return;
     }
-  }, [filters, currentPage, limit]);
+    
+    const filtersChanged = JSON.stringify(prevFiltersRef.current) !== JSON.stringify(filters);
+    const limitChanged = prevLimitRef.current !== limit;
+    
+    if (filtersChanged || limitChanged) {
+      // Use queueMicrotask to defer state update outside of render phase
+      queueMicrotask(() => {
+        setCurrentPage(1);
+      });
+      prevFiltersRef.current = filters;
+      prevLimitRef.current = limit;
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters.level, filters.source_id, filters.category, filters.from, filters.to, limit]);
 
-  useEffect(() => {
-    fetchLogs();
-  }, [fetchLogs]);
-
-  useEffect(() => {
-    sourcesApi.getAll().then(({ data }) => setSources(data.data ?? [])).catch(console.error);
-  }, []);
-
-  // Reset to page 1 on filter change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [filters, limit]);
-
-  const handleAiAnalysis = async () => {
-    if (!selectedLog) return;
-    setIsAnalyzing(true);
-    setAiResponse(null);
-    try {
-      const { data } = await logsApi.analyze(selectedLog.id);
-      const insight = data.data?.ai_insight;
+  // AI Analysis mutation
+  const analyzeMutation = useMutation({
+    mutationFn: async (logId: number) => {
+      const { data } = await logsApi.analyze(logId);
+      return data.data;
+    },
+    onSuccess: (data) => {
+      const insight = data?.ai_insight;
       if (insight) {
         const parsed = typeof insight === 'string' ? JSON.parse(insight) : insight;
         setAiResponse(parsed?.analysis ?? JSON.stringify(parsed, null, 2));
+        showToast('AI analysis completed');
       } else {
         setAiResponse('No analysis was generated. Please try again.');
       }
-      // Refresh the log entry to show updated ai_insight badge
-      setSelectedLog({ ...selectedLog, ai_insight: data.data?.ai_insight ? (typeof data.data.ai_insight === 'string' ? JSON.parse(data.data.ai_insight) : data.data.ai_insight) : null });
-    } catch (err) {
+      // Refresh logs to show updated ai_insight badge
+      queryClient.invalidateQueries({ queryKey: ['logs'] });
+    },
+    onError: () => {
       setAiResponse('Failed to run AI analysis. Please check your AI configuration.');
-      console.error(err);
-    } finally {
-      setIsAnalyzing(false);
-    }
+      showToast('AI analysis failed', 'error');
+    },
+  });
+
+  const handleAiAnalysis = async () => {
+    if (!selectedLog) return;
+    setAiResponse(null);
+    analyzeMutation.mutate(selectedLog.id);
   };
 
   const handleOpenLog = (log: Log) => {
@@ -121,9 +162,9 @@ export default function Logs() {
     }
   };
 
-  const handleExportCSV = async () => {
-    setIsExporting(true);
-    try {
+  // Export mutation
+  const exportMutation = useMutation({
+    mutationFn: async () => {
       const response = await logsApi.export({
         source_id: filters.source_id || undefined,
         level: filters.level || undefined,
@@ -137,16 +178,18 @@ export default function Logs() {
       a.download = `logs-${new Date().toISOString().slice(0, 10)}.csv`;
       a.click();
       URL.revokeObjectURL(url);
-    } catch (err) {
-      console.error('Export failed', err);
-    } finally {
-      setIsExporting(false);
-    }
-  };
+    },
+    onSuccess: () => {
+      showToast('Export completed successfully');
+    },
+    onError: () => {
+      showToast('Export failed', 'error');
+    },
+  });
 
   const displayedLogs = searchQuery
     ? logs.filter(
-        (l) =>
+        (l: Log) =>
           l.message.toLowerCase().includes(searchQuery.toLowerCase()) ||
           l.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
           l.source_id.toLowerCase().includes(searchQuery.toLowerCase()),
@@ -155,23 +198,23 @@ export default function Logs() {
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2.5">
-            <ScrollText size={22} className="text-purple-400" />
-            Log Explorer
-          </h1>
-          <p className="text-sm text-zinc-400">
-            {totalLogs.toLocaleString()} total logs
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-xl bg-purple-500/10 text-purple-400">
+            <ScrollText size={24} />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-white">Log Explorer</h1>
+            <p className="text-sm text-zinc-400">{totalLogs.toLocaleString()} total logs</p>
+          </div>
         </div>
         <button
-          onClick={handleExportCSV}
-          disabled={isExporting}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06] text-zinc-300 hover:bg-white/[0.06] text-sm transition-all disabled:opacity-50"
+          onClick={() => exportMutation.mutate()}
+          disabled={exportMutation.isPending}
+          className="px-4 py-2.5 rounded-xl bg-white/3 border border-white/5 text-zinc-300 hover:bg-white/5 text-sm transition-all disabled:opacity-50"
         >
-          <Download size={16} />
-          {isExporting ? 'Exporting...' : 'Export CSV'}
+          {exportMutation.isPending ? 'Exporting...' : 'Export CSV'}
         </button>
       </div>
 
@@ -184,10 +227,10 @@ export default function Logs() {
         >
           <AlertCircle size={20} />
           <div className="flex-1">
-            <p className="font-medium">{error}</p>
+            <p className="font-medium">{error instanceof Error ? error.message : 'An error occurred'}</p>
           </div>
           <button
-            onClick={fetchLogs}
+            onClick={() => refetch()}
             className="px-3 py-1.5 text-sm bg-red-500/20 hover:bg-red-500/30 rounded-lg transition-colors"
           >
             Retry
@@ -204,7 +247,7 @@ export default function Logs() {
               placeholder="Search messages, source IDs, categories..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-11 pr-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.05] text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-purple-500/30 transition-all text-sm"
+              className="w-full pl-11 pr-4 py-2.5 rounded-xl bg-white/3 border border-white/5 text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-purple-500/30 transition-all text-sm"
             />
           </div>
           <button
@@ -212,7 +255,7 @@ export default function Logs() {
             className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm transition-all ${
               isFilterOpen
                 ? 'bg-purple-500/10 border-purple-500/30 text-purple-400'
-                : 'bg-white/[0.03] border-white/[0.05] text-zinc-300 hover:bg-white/[0.06]'
+                : 'bg-white/3 border-white/5 text-zinc-300 hover:bg-white/5'
             }`}
           >
             <Filter size={16} />
@@ -229,7 +272,7 @@ export default function Logs() {
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="p-4 rounded-xl bg-white/[0.02] border border-white/5 backdrop-blur-sm grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4"
+              className="p-4 rounded-xl bg-white/2 border border-white/5 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4"
             >
               <div>
                 <label className="block text-xs font-medium text-zinc-400 mb-1.5">Level</label>
@@ -246,7 +289,7 @@ export default function Logs() {
                 <label className="block text-xs font-medium text-zinc-400 mb-1.5">Source</label>
                 <SelectField value={filters.source_id} onChange={(e) => setFilters({ ...filters, source_id: e.target.value })}>
                   <option value="">All Sources</option>
-                  {sources.map((s) => (
+                  {sources.map((s: Source) => (
                     <option key={s.id} value={s.id}>{s.name}</option>
                   ))}
                 </SelectField>
@@ -269,7 +312,7 @@ export default function Logs() {
                   type="datetime-local"
                   value={filters.from}
                   onChange={(e) => setFilters({ ...filters, from: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg bg-white/[0.03] border border-white/5 text-zinc-200 focus:outline-none text-sm [color-scheme:dark]"
+                  className="w-full px-3 py-2 rounded-lg bg-white/3 border border-white/5 text-zinc-200 focus:outline-none text-sm [color-scheme:dark]"
                 />
               </div>
               <div>
@@ -278,7 +321,7 @@ export default function Logs() {
                   type="datetime-local"
                   value={filters.to}
                   onChange={(e) => setFilters({ ...filters, to: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg bg-white/[0.03] border border-white/5 text-zinc-200 focus:outline-none text-sm [color-scheme:dark]"
+                  className="w-full px-3 py-2 rounded-lg bg-white/3 border border-white/5 text-zinc-200 focus:outline-none text-sm [color-scheme:dark]"
                 />
               </div>
               {(filters.from || filters.to) && (
@@ -296,67 +339,63 @@ export default function Logs() {
         </AnimatePresence>
       </div>
 
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="rounded-2xl bg-white/[0.02] border border-white/[0.05] backdrop-blur-sm overflow-hidden"
-      >
+      <div className="bg-white/2 border border-white/5 rounded-xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
-              <tr className="border-b border-white/[0.05] text-xs font-semibold uppercase tracking-wider text-zinc-400">
-                <th className="px-6 py-4">Timestamp</th>
-                <th className="px-6 py-4">Category</th>
-                <th className="px-6 py-4">Level</th>
-                <th className="px-6 py-4">Message</th>
-                <th className="px-6 py-4">AI</th>
-                <th className="px-6 py-4" />
+              <tr className="border-b border-white/5 text-xs font-semibold uppercase text-zinc-500">
+                <th className="px-4 py-3">Timestamp</th>
+                <th className="px-4 py-3">Category</th>
+                <th className="px-4 py-3">Level</th>
+                <th className="px-4 py-3">Message</th>
+                <th className="px-4 py-3">AI</th>
+                <th className="px-4 py-3" />
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/[0.03] text-sm text-zinc-300">
+            <tbody className="divide-y divide-white/5 text-sm text-zinc-300">
               {isLoading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <tr key={i}>
                     {Array.from({ length: 6 }).map((__, j) => (
-                      <td key={j} className="px-6 py-4">
-                        <div className="h-4 rounded bg-white/[0.03] animate-pulse" />
+                      <td key={j} className="px-4 py-3">
+                        <div className="h-4 rounded bg-white/3 animate-pulse" />
                       </td>
                     ))}
                   </tr>
                 ))
               ) : displayedLogs.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-zinc-500">
+                  <td colSpan={6} className="px-4 py-12 text-center text-zinc-500">
                     No logs found. Try adjusting your filters.
                   </td>
                 </tr>
               ) : (
-                displayedLogs.map((log) => (
+                displayedLogs.map((log: Log) => (
                   <tr
                     key={log.id}
                     onClick={() => handleOpenLog(log)}
-                    className="hover:bg-white/[0.01] cursor-pointer transition-colors group"
+                    className="hover:bg-white/5 cursor-pointer transition-colors group"
                   >
-                    <td className="px-6 py-4 text-xs font-mono text-zinc-500 whitespace-nowrap">
+                    <td className="px-4 py-3 text-xs font-mono text-zinc-500 whitespace-nowrap">
                       {new Date(log.created_at).toLocaleString()}
                     </td>
-                    <td className="px-6 py-4 text-xs text-zinc-400">{categoryLabel(log.category)}</td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-3 text-xs text-zinc-400">{categoryLabel(log.category)}</td>
+                    <td className="px-4 py-3">
                       <span className={`px-2 py-1 rounded-md text-xs font-semibold border ${LEVEL_STYLES[log.level] ?? LEVEL_STYLES.DEBUG}`}>
                         {log.level}
                       </span>
                     </td>
-                    <td className="px-6 py-4 truncate max-w-xs text-zinc-400 group-hover:text-zinc-200 transition-colors">
+                    <td className="px-4 py-3 truncate max-w-xs text-zinc-400 group-hover:text-zinc-200 transition-colors">
                       {log.message}
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-3">
                       {log.ai_insight && (
                         <span className="flex items-center gap-1 text-purple-400 text-xs">
                           <Sparkles size={12} /> AI
                         </span>
                       )}
                     </td>
-                    <td className="px-4 py-4 text-right">
+                    <td className="px-4 py-3 text-right">
                       <ChevronRight size={16} className="text-zinc-600 opacity-0 group-hover:opacity-100 transition-all" />
                     </td>
                   </tr>
@@ -367,7 +406,7 @@ export default function Logs() {
         </div>
 
         {/* Pagination Footer */}
-        <div className="p-4 border-t border-white/[0.05] flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="p-4 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2 text-sm text-zinc-400">
             <span>Show</span>
             <SelectField
@@ -393,21 +432,21 @@ export default function Logs() {
               <button
                 disabled={currentPage === 1}
                 onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                className="p-2 rounded-lg border border-white/[0.04] hover:bg-white/[0.03] disabled:opacity-40 text-zinc-300 disabled:cursor-not-allowed"
+                className="p-2 rounded-lg border border-white/5 hover:bg-white/5 disabled:opacity-40 text-zinc-300 disabled:cursor-not-allowed"
               >
                 <ChevronLeft size={16} />
               </button>
               <button
                 disabled={currentPage === maxPage}
                 onClick={() => setCurrentPage((p) => Math.min(maxPage, p + 1))}
-                className="p-2 rounded-lg border border-white/[0.04] hover:bg-white/[0.03] disabled:opacity-40 text-zinc-300 disabled:cursor-not-allowed"
+                className="p-2 rounded-lg border border-white/5 hover:bg-white/5 disabled:opacity-40 text-zinc-300 disabled:cursor-not-allowed"
               >
                 <ChevronRight size={16} />
               </button>
             </div>
           </div>
         </div>
-      </motion.div>
+      </div>
 
       {/* Log Detail Modal */}
       <AnimatePresence>
@@ -424,14 +463,14 @@ export default function Logs() {
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 rounded-2xl bg-[#0c0c0e] border border-white/[0.08] shadow-2xl space-y-4"
+              className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 rounded-xl bg-[#0c0c0e] border border-white/5 shadow-2xl space-y-4"
             >
-              <div className="flex items-center justify-between border-b border-white/[0.05] pb-4">
+              <div className="flex items-center justify-between border-b border-white/5 pb-4">
                 <div className="flex items-center gap-3">
                   <span className={`px-2.5 py-1 rounded-md text-xs font-bold border ${LEVEL_STYLES[selectedLog.level] ?? LEVEL_STYLES.DEBUG}`}>
                     {selectedLog.level}
                   </span>
-                  <span className="text-xs text-zinc-400 bg-white/[0.03] px-2 py-1 rounded-lg">
+                  <span className="text-xs text-zinc-400 bg-white/3 px-2 py-1 rounded-lg">
                     {categoryLabel(selectedLog.category)}
                   </span>
                 </div>
@@ -475,7 +514,7 @@ export default function Logs() {
                 {selectedLog.stack_trace && (
                   <div>
                     <p className="text-xs text-zinc-500 mb-1">Stack Trace</p>
-                    <pre className="p-4 rounded-xl bg-black/40 border border-white/[0.05] text-xs font-mono text-rose-300 overflow-x-auto whitespace-pre-wrap leading-relaxed">
+                    <pre className="p-4 rounded-xl bg-black/40 border border-white/5 text-xs font-mono text-rose-300 overflow-x-auto whitespace-pre-wrap leading-relaxed">
                       {selectedLog.stack_trace}
                     </pre>
                   </div>
@@ -522,19 +561,38 @@ export default function Logs() {
                   </motion.div>
                 )}
 
-                <div className="pt-4 border-t border-white/[0.05]">
+                <div className="pt-4 border-t border-white/5">
                   <button
                     onClick={handleAiAnalysis}
-                    disabled={isAnalyzing}
-                    className="flex items-center justify-center w-full gap-2 px-4 py-3 text-sm font-semibold text-white bg-gradient-to-r from-purple-500 to-indigo-500 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50"
+                    disabled={analyzeMutation.isPending}
+                    className="flex items-center justify-center w-full gap-2 px-4 py-3 text-sm font-semibold text-white bg-linear-to-r from-purple-500 to-indigo-500 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50"
                   >
-                    <Sparkles size={16} className={isAnalyzing ? 'animate-spin' : ''} />
-                    {isAnalyzing ? 'Analyzing with AI...' : aiResponse ? 'Re-analyze' : 'Run AI Analysis'}
+                    <Sparkles size={16} className={analyzeMutation.isPending ? 'animate-spin' : ''} />
+                    {analyzeMutation.isPending ? 'Analyzing with AI...' : aiResponse ? 'Re-analyze' : 'Run AI Analysis'}
                   </button>
                 </div>
               </div>
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+
+      {/* Toast */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: 40, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 40, scale: 0.95 }}
+            className={`fixed bottom-24 right-6 px-4 py-3 rounded-xl border shadow-2xl flex items-center gap-2 z-60 text-sm font-medium ${
+              toast.type === 'success'
+                ? 'bg-[#111113] text-emerald-400 border-emerald-500/20'
+                : 'bg-[#111113] text-rose-400 border-rose-500/20'
+            }`}
+          >
+            {toast.type === 'success' ? <CheckCircle size={15} /> : <AlertCircle size={15} />}
+            {toast.message}
+          </motion.div>
         )}
       </AnimatePresence>
     </div>
