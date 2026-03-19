@@ -98,3 +98,32 @@ type Incident struct {
 	CreatedAt   time.Time  `json:"created_at"`
 	UpdatedAt   time.Time  `json:"updated_at"`
 }
+
+// APMThreshold stores latency thresholds for alerting
+// Phase 3: APM Threshold
+type APMThreshold struct {
+	ID          uint      `gorm:"primaryKey" json:"id"`
+	SourceID    string    `gorm:"type:uuid;not null;index" json:"source_id"`
+	Endpoint    string    `gorm:"type:varchar(255);not null" json:"endpoint"`
+	P95Limit    int       `gorm:"not null;default:1000" json:"p95_limit"` // milliseconds
+	P99Limit    int       `gorm:"not null;default:2000" json:"p99_limit"` // milliseconds
+	EmailNotify bool      `gorm:"not null;default:true" json:"email_notify"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}
+
+// Session tracks user login sessions
+// Phase 2: Activity Monitor
+type Session struct {
+	ID           uint      `gorm:"primaryKey" json:"id"`
+	UserID       string    `gorm:"type:varchar(100);not null;index" json:"user_id"`
+	SourceID     string    `gorm:"type:uuid;not null;index" json:"source_id"`
+	AuthMethod   string    `gorm:"type:varchar(50);not null" json:"auth_method"`
+	IPAddress    string    `gorm:"type:varchar(45)" json:"ip_address"`
+	Browser      string    `gorm:"type:varchar(100)" json:"browser"`
+	Device       string    `gorm:"type:varchar(100)" json:"device"`
+	IsActive     bool      `gorm:"not null;default:true" json:"is_active"`
+	LastActivity time.Time `json:"last_activity"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
+}

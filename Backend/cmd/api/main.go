@@ -86,6 +86,16 @@ func main() {
 	incidentService := service.NewIncidentService(incidentRepo)
 	incidentHandler := handler.NewIncidentHandler(incidentService)
 
+	// Phase 2: Activity Analytics
+	activityAnalyticsRepo := repository.NewActivityAnalyticsRepository(db)
+	activityAnalyticsService := service.NewActivityAnalyticsService(activityAnalyticsRepo)
+	activityAnalyticsHandler := handler.NewActivityAnalyticsHandler(activityAnalyticsService)
+
+	// Phase 3: APM Thresholds
+	apmThresholdRepo := repository.NewAPMThresholdRepository(db)
+	apmThresholdService := service.NewAPMThresholdService(apmThresholdRepo, logRepo)
+	apmThresholdHandler := handler.NewAPMThresholdHandler(apmThresholdService)
+
 	// 5. Start Background Workers
 	retentionWorker := worker.NewRetentionWorker(logRepo, 30) // 30 days retention
 	retentionWorker.Start()
@@ -154,9 +164,22 @@ func main() {
 			admin.GET("/activity/users/:user_id", activityHandler.ByUser)
 			admin.GET("/activity/suspicious", activityHandler.Suspicious)
 
+			// Activity Analytics (Phase 2 Extended)
+			admin.GET("/activity/analytics/methods", activityAnalyticsHandler.GetAuthMethodBreakdown)
+			admin.GET("/activity/analytics/timeline", activityAnalyticsHandler.GetLoginTimeline)
+			admin.GET("/activity/analytics/heatmap", activityAnalyticsHandler.GetFailedLoginHeatmap)
+			admin.GET("/activity/sessions", activityAnalyticsHandler.GetRecentSessions)
+
 			// APM (Phase 3)
 			admin.GET("/apm/endpoints", apmHandler.EndpointStats)
 			admin.GET("/apm/timeline", apmHandler.ResponseTimeTimeline)
+
+			// APM Thresholds (Phase 3 Extended)
+			admin.GET("/apm/thresholds", apmThresholdHandler.List)
+			admin.POST("/apm/thresholds", apmThresholdHandler.Create)
+			admin.PATCH("/apm/thresholds/:id", apmThresholdHandler.Update)
+			admin.DELETE("/apm/thresholds/:id", apmThresholdHandler.Delete)
+			admin.GET("/apm/slow-queries", apmThresholdHandler.GetSlowQueries)
 
 			// Issues (Phase 5)
 			admin.GET("/issues", issueHandler.List)
