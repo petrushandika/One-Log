@@ -44,6 +44,23 @@ type LogRepository interface {
 	GetSlowQueryTrend(sourceID string, days int) ([]map[string]interface{}, error)
 	CalculateApdexScore(sourceID string, endpoint string, thresholdMs int) (*ApdexResult, error)
 	GetEndpointLatencyStats(sourceID string, endpoint string) (map[string]interface{}, error)
+
+	// Phase 5: Regression Detection
+	FindResolvedIssuesWithNewOccurrences() ([]IssueWithSource, error)
+	MarkAsRegression(fingerprint string) error
+}
+
+// IssueWithSource combines issue data with source name
+type IssueWithSource struct {
+	Fingerprint         string
+	SourceID            string
+	SourceName          string
+	Level               string
+	MessageSample       string
+	OccurrenceCount     int64
+	LastSeenAt          time.Time
+	ResolvedAt          *time.Time
+	RegressionAlertSent bool
 }
 
 // ApdexResult holds the result of Apdex calculation

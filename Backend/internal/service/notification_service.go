@@ -16,6 +16,7 @@ import (
 type NotificationService interface {
 	NotifyError(logEntry *domain.LogEntry)
 	NotifyRecovery(sourceName string, downtimeDuration string)
+	SendEmail(to, subject, body string) error
 }
 
 type notificationService struct {
@@ -117,4 +118,8 @@ func (s *notificationService) NotifyRecovery(sourceName string, downtimeDuration
 			log.Printf("Telegram recovery alert sent for %s\n", sourceName)
 		}
 	}()
+}
+
+func (s *notificationService) SendEmail(to, subject, body string) error {
+	return s.emailClient.SendHTML(to, subject, body)
 }

@@ -37,17 +37,20 @@ type LogEntry struct {
 // Issue is an aggregated error group keyed by LogEntry.Fingerprint.
 // Phase 5: Issue Tracker
 type Issue struct {
-	Fingerprint     string    `gorm:"type:varchar(64);primaryKey" json:"fingerprint"`
-	SourceID        string    `gorm:"type:uuid;not null;index" json:"source_id"`
-	Status          string    `gorm:"type:varchar(20);default:'OPEN';index" json:"status"`
-	Category        string    `gorm:"type:varchar(50);index" json:"category"`
-	Level           string    `gorm:"type:varchar(20);index" json:"level"`
-	MessageSample   string    `gorm:"type:text" json:"message_sample"`
-	OccurrenceCount int64     `gorm:"not null;default:1" json:"occurrence_count"`
-	FirstSeenAt     time.Time `gorm:"index" json:"first_seen_at"`
-	LastSeenAt      time.Time `gorm:"index" json:"last_seen_at"`
-	CreatedAt       time.Time `json:"created_at"`
-	UpdatedAt       time.Time `json:"updated_at"`
+	Fingerprint         string     `gorm:"type:varchar(64);primaryKey" json:"fingerprint"`
+	SourceID            string     `gorm:"type:uuid;not null;index" json:"source_id"`
+	Status              string     `gorm:"type:varchar(20);default:'OPEN';index" json:"status"`
+	Category            string     `gorm:"type:varchar(50);index" json:"category"`
+	Level               string     `gorm:"type:varchar(20);index" json:"level"`
+	MessageSample       string     `gorm:"type:text" json:"message_sample"`
+	OccurrenceCount     int64      `gorm:"not null;default:1" json:"occurrence_count"`
+	FirstSeenAt         time.Time  `gorm:"index" json:"first_seen_at"`
+	LastSeenAt          time.Time  `gorm:"index" json:"last_seen_at"`
+	ResolvedAt          *time.Time `json:"resolved_at"`
+	IsRegression        bool       `gorm:"default:false" json:"is_regression"`
+	RegressionAlertSent bool       `gorm:"default:false" json:"regression_alert_sent"`
+	CreatedAt           time.Time  `json:"created_at"`
+	UpdatedAt           time.Time  `json:"updated_at"`
 }
 
 type SourceConfig struct {
