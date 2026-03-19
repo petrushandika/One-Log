@@ -324,11 +324,12 @@ Export data dan notifikasi ke platform lain.
 - [x] **CSV Export** — `GET /api/logs/export` — export hasil filter log ke CSV
 - [ ] **Excel Export** — export ke .xlsx dengan formatting
 - [ ] **PDF Audit Report** — export audit trail ke PDF untuk compliance
-- [ ] **Slack Notification** — alert ke Slack channel
-- [ ] **Telegram Bot** — notifikasi ke Telegram group/channel
+- [x] **Email Notification** — alert ke email admin (with 5-min throttle)
+- [x] **Telegram Bot** — notifikasi ke Telegram group/channel
 - [x] **Webhook Support** — generic outgoing webhook ke URL apapun (via `WEBHOOK_URL` env)
-- [ ] **Log Archiving** — compress dan archive log lama ke S3/object storage
-- [ ] **Official SDK** — Go, Node.ts, PHP, Python SDK untuk integrasi lebih mudah
+- [x] **Rate Limiting** — Token bucket algorithm untuk semua endpoints
+- [ ] **Log Archiving** — compress dan archive log lama ke S3/object storage (interface ready)
+- [x] **Official Go SDK** — Go SDK untuk integrasi lebih mudah
 
 ### Third-Party Audit Integrations (SaaS Connectors)
 

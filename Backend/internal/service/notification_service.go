@@ -8,25 +8,29 @@ import (
 
 	"github.com/petrushandika/one-log/internal/domain"
 	"github.com/petrushandika/one-log/pkg/email"
+	"github.com/petrushandika/one-log/pkg/telegram"
 	"github.com/petrushandika/one-log/pkg/webhook"
 )
 
 // NotificationService handles alert throttling and distribution
 type NotificationService interface {
 	NotifyError(logEntry *domain.LogEntry)
+	NotifyRecovery(sourceName string, downtimeDuration string)
 }
 
 type notificationService struct {
-	emailClient email.SMTPEmailService
-	webhook     *webhook.Client
-	lastSent    sync.Map // Key: "{source_id}:{message}", Value: time.Time
+	emailClient    email.SMTPEmailService
+	telegramClient *telegram.TelegramService
+	webhook        *webhook.Client
+	lastSent       sync.Map // Key: "{source_id}:{message}", Value: time.Time
 }
 
 func NewNotificationService() NotificationService {
 	// Simple memory-based debounce
 	return &notificationService{
-		emailClient: *email.NewSMTPEmailService(),
-		webhook:     webhook.New(),
+		emailClient:    *email.NewSMTPEmailService(),
+		telegramClient: telegram.NewTelegramService(),
+		webhook:        webhook.New(),
 	}
 }
 
@@ -49,33 +53,68 @@ func (s *notificationService) NotifyError(logEntry *domain.LogEntry) {
 		}
 	}
 
-	adminEmail := os.Getenv("ADMIN_EMAIL")
-	if adminEmail == "" {
-		return
-	}
-
-	// 2. We can send an email, first register the throttle time
+	// 2. We can send notifications, first register the throttle time
 	s.lastSent.Store(issueKey, time.Now())
 
-	// 3. Send email asynchronously
-	err := s.emailClient.SendAlertEmail(adminEmail, logEntry)
-	if err != nil {
-		log.Printf("Failed to send Notification Email to %s: %v\n", adminEmail, err)
-		// Rollback throttle so it can try again
-		s.lastSent.Delete(issueKey)
-	} else {
-		log.Printf("Notification Email Sent to %s for %s\n", adminEmail, issueKey)
+	// 3. Send Email asynchronously
+	adminEmail := os.Getenv("ADMIN_EMAIL")
+	if adminEmail != "" {
+		go func() {
+			err := s.emailClient.SendAlertEmail(adminEmail, logEntry)
+			if err != nil {
+				log.Printf("Failed to send Notification Email to %s: %v\n", adminEmail, err)
+			} else {
+				log.Printf("Notification Email Sent to %s for %s\n", adminEmail, issueKey)
+			}
+		}()
 	}
 
-	// 4. Optional webhook integration (Phase 7)
+	// 4. Send Telegram asynchronously
+	go func() {
+		err := s.telegramClient.SendAlert(logEntry)
+		if err != nil {
+			log.Printf("Failed to send Telegram notification: %v\n", err)
+		} else {
+			log.Printf("Telegram notification sent for %s\n", issueKey)
+		}
+	}()
+
+	// 5. Optional webhook integration (Phase 7)
 	if url := os.Getenv("WEBHOOK_URL"); url != "" {
-		_ = s.webhook.SendJSON(url, map[string]interface{}{
-			"source_id":   logEntry.SourceID,
-			"category":    logEntry.Category,
-			"level":       logEntry.Level,
-			"message":     logEntry.Message,
-			"created_at":  logEntry.CreatedAt.UTC().Format(time.RFC3339),
-			"fingerprint": logEntry.Fingerprint,
-		})
+		go func() {
+			_ = s.webhook.SendJSON(url, map[string]interface{}{
+				"source_id":   logEntry.SourceID,
+				"category":    logEntry.Category,
+				"level":       logEntry.Level,
+				"message":     logEntry.Message,
+				"created_at":  logEntry.CreatedAt.UTC().Format(time.RFC3339),
+				"fingerprint": logEntry.Fingerprint,
+			})
+		}()
 	}
+}
+
+func (s *notificationService) NotifyRecovery(sourceName string, downtimeDuration string) {
+	// 1. Send Email
+	adminEmail := os.Getenv("ADMIN_EMAIL")
+	if adminEmail != "" {
+		go func() {
+			err := s.emailClient.SendRecoveryEmail(adminEmail, sourceName, downtimeDuration)
+			if err != nil {
+				log.Printf("Failed to send Recovery Email: %v\n", err)
+			} else {
+				log.Printf("Recovery Email sent for %s\n", sourceName)
+			}
+		}()
+	}
+
+	// 2. Send Telegram
+	go func() {
+		err := s.telegramClient.SendRecoveryAlert(sourceName, downtimeDuration)
+		if err != nil {
+			log.Printf("Failed to send Telegram recovery alert: %v\n", err)
+		} else {
+			log.Printf("Telegram recovery alert sent for %s\n", sourceName)
+		}
+	}()
 }

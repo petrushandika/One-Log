@@ -3,28 +3,26 @@ package worker
 import (
 	"fmt"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/petrushandika/one-log/internal/domain"
 	"github.com/petrushandika/one-log/internal/repository"
 	"github.com/petrushandika/one-log/internal/service"
-	"github.com/petrushandika/one-log/pkg/email"
 )
 
 type UptimeWorker struct {
 	sourceRepo   repository.SourceRepository
 	incidentRepo repository.IncidentRepository
 	logSvc       service.LogService
-	emailClient  *email.SMTPEmailService
+	notifySvc    service.NotificationService
 }
 
-func NewUptimeWorker(sourceRepo repository.SourceRepository, incidentRepo repository.IncidentRepository, logSvc service.LogService) *UptimeWorker {
+func NewUptimeWorker(sourceRepo repository.SourceRepository, incidentRepo repository.IncidentRepository, logSvc service.LogService, notifySvc service.NotificationService) *UptimeWorker {
 	return &UptimeWorker{
 		sourceRepo:   sourceRepo,
 		incidentRepo: incidentRepo,
 		logSvc:       logSvc,
-		emailClient:  email.NewSMTPEmailService(),
+		notifySvc:    notifySvc,
 	}
 }
 
@@ -117,7 +115,7 @@ func (w *UptimeWorker) createIncident(s *domain.Source) {
 	}
 }
 
-// resolveIncident resolves the open incident and sends recovery email
+// resolveIncident resolves the open incident and sends recovery notifications
 func (w *UptimeWorker) resolveIncident(s *domain.Source) {
 	// Find open incident for this source
 	incident, err := w.incidentRepo.FindOpenBySource(s.ID)
@@ -139,15 +137,8 @@ func (w *UptimeWorker) resolveIncident(s *domain.Source) {
 
 	fmt.Printf("[UptimeWorker] Incident resolved for source %s. Downtime: %s\n", s.Name, durationStr)
 
-	// Send recovery email
-	adminEmail := os.Getenv("ADMIN_EMAIL")
-	if adminEmail != "" {
-		if err := w.emailClient.SendRecoveryEmail(adminEmail, s.Name, durationStr); err != nil {
-			fmt.Printf("[UptimeWorker] Failed to send recovery email: %v\n", err)
-		} else {
-			fmt.Printf("[UptimeWorker] Recovery email sent to %s\n", adminEmail)
-		}
-	}
+	// Send recovery notifications (Email + Telegram)
+	w.notifySvc.NotifyRecovery(s.Name, durationStr)
 }
 
 // formatDuration formats a duration into a human-readable string

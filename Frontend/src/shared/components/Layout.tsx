@@ -3,6 +3,8 @@ import { Link, useLocation, Outlet, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LayoutGrid, FileText, ShieldAlert, LogOut, Terminal, Menu, X, BugPlay, Activity, Radio, Server, SlidersHorizontal } from 'lucide-react';
 import ChatWidget from './ChatWidget';
+import { NotificationProvider } from '../contexts/NotificationContext';
+import NotificationDropdown from './NotificationDropdown';
 
 export default function Layout() {
   const location = useLocation();
@@ -51,8 +53,9 @@ export default function Layout() {
   };
 
   return (
-    <div className="flex bg-[#09090b] min-h-screen">
-      {/* Sidebar - Desktop */}
+    <NotificationProvider>
+      <div className="flex bg-[#09090b] min-h-screen">
+        {/* Sidebar - Desktop */}
       <aside className="hidden lg:flex fixed inset-y-0 left-0 w-64 border-r border-white/5 bg-[#0c0c0e]/80 backdrop-blur-md p-6 flex-col justify-between z-30">
         <div>
           <div className="flex items-center gap-2 mb-10">
@@ -206,7 +209,8 @@ export default function Layout() {
               )}
             </div>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            <NotificationDropdown />
             <span className="px-3 py-1 text-xs font-semibold rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
               Live
             </span>
@@ -222,5 +226,6 @@ export default function Layout() {
       {/* AI Chat — rendered outside scroll containers so it always sits fixed bottom-right */}
       <ChatWidget />
     </div>
+    </NotificationProvider>
   );
 }

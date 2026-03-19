@@ -1255,14 +1255,34 @@ Responses are formatted in Markdown and rendered in the chat widget.
 
 ## Rate Limits Summary
 
-| Endpoint                             | Limit   | Window                 | Status         |
-| ------------------------------------ | ------- | ---------------------- | -------------- |
-| `POST /api/ingest`                   | 100 req | Per menit, per API key | Planned        |
-| `GET /api/logs`                      | 60 req  | Per menit, per JWT     | Planned        |
-| `GET /api/stats/*`                   | 30 req  | Per menit, per JWT     | Planned        |
-| `POST /api/auth/login`               | 10 req  | Per menit, per IP      | Planned        |
-| `POST /api/sources/:slug/rotate-key` | 5 req   | Per jam, per JWT       | Planned        |
-| Email Notifications                  | 1 email | Per 5 menit, per error | Implemented    |
+| Endpoint                             | Limit   | Window                 | Status         | Algorithm       |
+| ------------------------------------ | ------- | ---------------------- | -------------- | --------------- |
+| `POST /api/ingest`                   | 100 req | Per menit, per API key | ✅ Implemented | Token Bucket    |
+| `GET /api/logs`                      | 60 req  | Per menit, per JWT     | ✅ Implemented | Token Bucket    |
+| `GET /api/stats/*`                   | 60 req  | Per menit, per JWT     | ✅ Implemented | Token Bucket    |
+| `POST /api/auth/login`               | 10 req  | Per menit, per IP      | ✅ Implemented | Token Bucket    |
+| `POST /api/sources/:slug/rotate-key` | 5 req   | Per jam, per JWT       | ✅ Implemented | Token Bucket    |
+| Email Notifications                  | 1 email | Per 5 menit, per error | ✅ Implemented | Time-based      |
 
-> **Note**: Global rate limiting is planned for future implementation. Currently, email notifications are throttled (5-minute cooldown per error type).
+**Rate Limit Response (429 Too Many Requests):**
+
+```json
+{
+  "status": "error",
+  "code": 429,
+  "message": "Rate limit exceeded. Please try again later.",
+  "errors": {
+    "retry_after_seconds": 30,
+    "limit": 100,
+    "window": "1m0s"
+  }
+}
+```
+
+**Headers:**
+- `Retry-After`: Seconds to wait before retry
+- `X-RateLimit-Limit`: Request limit
+- `X-RateLimit-Window`: Time window
+
+> **Algorithm**: Token Bucket - Smooth rate limiting with burst capability
 

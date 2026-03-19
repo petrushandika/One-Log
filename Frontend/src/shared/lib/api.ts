@@ -20,7 +20,7 @@ api.interceptors.request.use(
   (error) => Promise.reject(error),
 );
 
-// Response: auto-logout on 401
+// Response: auto-logout on 401 and handle errors
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -28,6 +28,13 @@ api.interceptors.response.use(
       localStorage.removeItem('token');
       window.location.href = '/login';
     }
+    
+    // Handle rate limiting (429)
+    if (error.response?.status === 429) {
+      const retryAfter = error.response.headers['retry-after'] || 60;
+      console.error(`Rate limit exceeded. Retry after ${retryAfter} seconds.`);
+    }
+    
     return Promise.reject(error);
   },
 );

@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -89,7 +90,7 @@ func main() {
 	retentionWorker := worker.NewRetentionWorker(logRepo, 30) // 30 days retention
 	retentionWorker.Start()
 
-	uptimeWorker := worker.NewUptimeWorker(sourceRepo, incidentRepo, logService)
+	uptimeWorker := worker.NewUptimeWorker(sourceRepo, incidentRepo, logService, notifySvc)
 	uptimeWorker.Start()
 
 	// 5. Setup Router (Gin Framework)
@@ -124,15 +125,17 @@ func main() {
 			auth.POST("/logout", authHandler.Logout)
 		}
 
-		// 6b. API Key Protected (For client applications)
+		// 6b. API Key Protected (For client applications) - Rate limited: 100 req/min per API key
 		ingest := api.Group("/ingest")
+		ingest.Use(middleware.RateLimitByAPIKey(100, time.Minute))
 		ingest.Use(middleware.APIKeyAuth(sourceRepo))
 		{
 			ingest.POST("", logHandler.Ingest)
 		}
 
-		// 6c. JWT Protected (For admins in the UI dashboard)
+		// 6c. JWT Protected (For admins in the UI dashboard) - Rate limited: 60 req/min per user
 		admin := api.Group("")
+		admin.Use(middleware.RateLimitByJWT(60, time.Minute))
 		admin.Use(middleware.JWTAuth())
 		{
 			// Logs
