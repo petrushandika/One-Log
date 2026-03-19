@@ -80,11 +80,16 @@ func main() {
 	chatService := service.NewChatService(logRepo, ai.NewGroqClient())
 	chatHandler := handler.NewChatHandler(chatService)
 
+	// Phase 4: Incident Management
+	incidentRepo := repository.NewIncidentRepository(db)
+	incidentService := service.NewIncidentService(incidentRepo)
+	incidentHandler := handler.NewIncidentHandler(incidentService)
+
 	// 5. Start Background Workers
 	retentionWorker := worker.NewRetentionWorker(logRepo, 30) // 30 days retention
 	retentionWorker.Start()
 
-	uptimeWorker := worker.NewUptimeWorker(sourceRepo, logService)
+	uptimeWorker := worker.NewUptimeWorker(sourceRepo, incidentRepo, logService)
 	uptimeWorker.Start()
 
 	// 5. Setup Router (Gin Framework)
@@ -98,7 +103,8 @@ func main() {
 	}
 
 	r := gin.Default()
-	r.Use(middleware.CORSMiddleware()) // Apply CORS middleware
+	r.Use(middleware.RequestIDMiddleware()) // Request tracing
+	r.Use(middleware.CORSMiddleware())      // Apply CORS middleware
 
 	// 6. Register Routes
 	r.GET("/health", func(c *gin.Context) {
@@ -147,12 +153,19 @@ func main() {
 
 			// APM (Phase 3)
 			admin.GET("/apm/endpoints", apmHandler.EndpointStats)
+			admin.GET("/apm/timeline", apmHandler.ResponseTimeTimeline)
 
 			// Issues (Phase 5)
 			admin.GET("/issues", issueHandler.List)
+			admin.GET("/issues/analytics/trend", issueHandler.ErrorRateTrend)
+			admin.GET("/issues/analytics/heatmap", issueHandler.ErrorHeatmap)
 			admin.GET("/issues/:fingerprint", issueHandler.Get)
 			admin.PATCH("/issues/:fingerprint", issueHandler.UpdateStatus)
 			admin.GET("/issues/:fingerprint/logs", issueHandler.Logs)
+
+			// Phase 4: Incident Management
+			admin.GET("/incidents", incidentHandler.List)
+			admin.GET("/incidents/timeline", incidentHandler.GetTimeline)
 
 			// Configs
 			admin.POST("/sources/:id/configs", configHandler.Save)

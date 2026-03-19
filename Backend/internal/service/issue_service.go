@@ -12,6 +12,10 @@ type IssueService interface {
 	Get(fingerprint string, ownerUserID uint) (interface{}, error)
 	UpdateStatus(fingerprint string, status string, ownerUserID uint) (interface{}, error)
 	Logs(fingerprint string, limitStr, pageStr string, ownerUserID uint) (interface{}, map[string]interface{}, error)
+
+	// Phase 5: Error Analytics
+	ErrorRateTrend(days int, sourceID string, ownerUserID uint) ([]map[string]interface{}, error)
+	ErrorHeatmap(days int, sourceID string, ownerUserID uint) ([]map[string]interface{}, error)
 }
 
 type issueService struct {
@@ -84,4 +88,18 @@ func (s *issueService) Logs(fingerprint string, limitStr, pageStr string, ownerU
 		"limit": limit,
 	}
 	return logs, meta, nil
+}
+
+func (s *issueService) ErrorRateTrend(days int, sourceID string, ownerUserID uint) ([]map[string]interface{}, error) {
+	if days <= 0 {
+		days = 30
+	}
+	return s.repo.GetErrorRateTrend(days, sourceID, ownerUserID)
+}
+
+func (s *issueService) ErrorHeatmap(days int, sourceID string, ownerUserID uint) ([]map[string]interface{}, error) {
+	if days <= 0 {
+		days = 30
+	}
+	return s.repo.GetErrorHeatmap(days, sourceID, ownerUserID)
 }
