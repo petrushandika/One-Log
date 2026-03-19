@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Filter, Search, ChevronRight, X, Sparkles, ChevronLeft, Download, ScrollText } from 'lucide-react';
+import { Filter, Search, ChevronRight, X, Sparkles, ChevronLeft, Download, ScrollText, AlertCircle } from 'lucide-react';
 import SelectField from '../shared/components/SelectField';
 import { logsApi, sourcesApi } from '../shared/lib/api';
 import { categoryLabel } from '../shared/lib/utils';
@@ -48,11 +48,13 @@ export default function Logs() {
   const [sources, setSources] = useState<Source[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const maxPage = Math.max(1, Math.ceil(totalLogs / limit));
 
   const fetchLogs = useCallback(async () => {
     setIsLoading(true);
+    setError(null);
     try {
       const { data } = await logsApi.getLogs({
         source_id: filters.source_id || undefined,
@@ -67,6 +69,7 @@ export default function Logs() {
       setTotalLogs(data.data?.meta?.total ?? 0);
     } catch (err) {
       console.error('Failed to fetch logs', err);
+      setError('Failed to load logs. Please check your connection.');
     } finally {
       setIsLoading(false);
     }
@@ -171,6 +174,26 @@ export default function Logs() {
           {isExporting ? 'Exporting...' : 'Export CSV'}
         </button>
       </div>
+
+      {/* Error Message */}
+      {error && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 flex items-center gap-3"
+        >
+          <AlertCircle size={20} />
+          <div className="flex-1">
+            <p className="font-medium">{error}</p>
+          </div>
+          <button
+            onClick={fetchLogs}
+            className="px-3 py-1.5 text-sm bg-red-500/20 hover:bg-red-500/30 rounded-lg transition-colors"
+          >
+            Retry
+          </button>
+        </motion.div>
+      )}
 
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-4 md:flex-row md:items-center">

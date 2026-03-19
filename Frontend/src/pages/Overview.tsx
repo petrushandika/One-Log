@@ -18,10 +18,12 @@ interface StatsData {
 export default function Overview() {
   const [liveStats, setLiveStats] = useState<StatsData>({ total: 0, errors: 0, active: 0, security: 0 });
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [lastRefresh, setLastRefresh] = useState(new Date());
 
   const fetchStats = async () => {
     setIsLoading(true);
+    setError(null);
     try {
       const [statsRes, sourcesRes] = await Promise.all([
         statsApi.getOverview(),
@@ -45,6 +47,7 @@ export default function Overview() {
       setLastRefresh(new Date());
     } catch (err) {
       console.error('Failed to fetch stats', err);
+      setError('Failed to load dashboard data. Please check your connection.');
     } finally {
       setIsLoading(false);
     }
@@ -123,6 +126,27 @@ export default function Overview() {
           {isLoading ? 'Loading...' : `Refreshed ${lastRefresh.toLocaleTimeString()}`}
         </button>
       </div>
+
+      {/* Error Message */}
+      {error && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 flex items-center gap-3"
+        >
+          <AlertCircle size={20} />
+          <div className="flex-1">
+            <p className="font-medium">{error}</p>
+            <p className="text-sm text-red-300/70">Make sure the backend server is running on port 8080</p>
+          </div>
+          <button
+            onClick={fetchStats}
+            className="px-3 py-1.5 text-sm bg-red-500/20 hover:bg-red-500/30 rounded-lg transition-colors"
+          >
+            Retry
+          </button>
+        </motion.div>
+      )}
 
       {/* Stat Cards */}
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">

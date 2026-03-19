@@ -1,0 +1,27 @@
+{
+  "name": "@onelog/sdk",
+  "version": "1.0.0",
+  "description": "Official Node.js SDK for One-Log (ULAM) - Unified Log & Activity Monitor",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "keywords": [
+    "logging",
+    "monitoring",
+    "apm",
+    "observability",
+    "ulam",
+    "one-log"
+  ],
+  "author": "One-Log Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/petrushandika/one-log.git",
+    "directory": "sdk/node"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}

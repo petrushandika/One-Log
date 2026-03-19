@@ -1,0 +1,20 @@
+{
+    "name": "onelog/sdk",
+    "description": "Official PHP SDK for One-Log (ULAM) - Unified Log & Activity Monitor",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "One-Log Team"
+        }
+    ],
+    "require": {
+        "php": ">=7.4"
+    },
+    "autoload": {
+        "psr-4": {
+            "OneLog\\": "./"
+        }
+    },
+    "minimum-stability": "stable"
+}
