@@ -103,6 +103,8 @@ export const activityApi = {
 export const apmApi = {
   endpointStats: (params: { source_id?: string; period?: string } = {}) =>
     api.get('/apm/endpoints', { params }),
+  timeline: (params: { source_id?: string; endpoint?: string; period?: string; interval?: string } = {}) =>
+    api.get('/apm/timeline', { params }),
 };
 
 // ─── Issues ──────────────────────────────────────────────────────────────────
@@ -118,6 +120,10 @@ export const issuesApi = {
     api.patch(`/issues/${fingerprint}`, { status }),
   logs: (fingerprint: string, params: { page?: number; limit?: number } = {}) =>
     api.get(`/issues/${fingerprint}/logs`, { params }),
+  trend: (params: { source_id?: string; days?: number } = {}) =>
+    api.get('/issues/analytics/trend', { params }),
+  heatmap: (params: { source_id?: string; days?: number } = {}) =>
+    api.get('/issues/analytics/heatmap', { params }),
 };
 
 // ─── Status (public) ─────────────────────────────────────────────────────────
@@ -133,6 +139,14 @@ export const configApi = {
     api.post(`/sources/${sourceId}/configs`, data),
   history: (sourceId: string, params: { environment?: string } = {}) =>
     api.get(`/sources/${sourceId}/configs/history`, { params }),
+};
+
+// ─── Incidents ───────────────────────────────────────────────────────────────
+export const incidentsApi = {
+  list: (params: { status?: string; source_id?: string; page?: number; limit?: number } = {}) =>
+    api.get('/incidents', { params }),
+  timeline: (params: { source_id?: string; days?: number } = {}) =>
+    api.get('/incidents/timeline', { params }),
 };
 
 // ─── Chat (AI Copilot) ───────────────────────────────────────────────────────

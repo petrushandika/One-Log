@@ -20,10 +20,11 @@
    - [Log Explorer](#92-log-explorer)
    - [Issues](#93-issues)
    - [APM — Performa Endpoint](#94-apm--performa-endpoint)
-   - [Audit Trail](#95-audit-trail)
-   - [Status Page](#96-status-page)
-   - [Config Manager](#97-config-manager)
-   - [One Log AI (Chatbot)](#98-one-log-ai-chatbot)
+   - [Incidents](#95-incidents)
+   - [Audit Trail](#96-audit-trail)
+   - [Status Page](#97-status-page)
+   - [Config Manager](#98-config-manager)
+   - [One Log AI (Chatbot)](#99-one-log-ai-chatbot)
 10. [Contoh Integrasi Lengkap](#10-contoh-integrasi-lengkap)
 11. [Troubleshooting](#11-troubleshooting)
 
@@ -611,9 +612,49 @@ Pantau latensi endpoint API berdasarkan log dengan kategori `PERFORMANCE`.
 
 ---
 
-### 9.5 Audit Trail
+### 9.5 Incidents
 
-**Navigasi:** Sidebar → **Audit Trail**
+**Navigasi:** Sidebar → **Reliability** → **Incidents**
+
+Pantau dan tracking downtime sistem secara otomatis. Setiap kali source berstatus OFFLINE, sistem akan:
+
+1. Membuat incident record otomatis
+2. Mengirim notifikasi Email + Telegram
+3. Menghitung downtime duration
+4. Update status saat source kembali ONLINE
+
+#### Stats Overview
+
+- **Open Incidents** — Jumlah incident yang sedang berlangsung
+- **Resolved (30d)** — Total incident yang sudah resolved dalam 30 hari
+- **Total Downtime** — Total waktu downtime dalam 30 hari
+- **Uptime %** — Persentase uptime dalam 30 hari terakhir
+
+#### Timeline Chart
+
+Visualisasi incident per hari (bar chart):
+- **Blue bars** — Incident yang dibuka
+- **Green bars** — Incident yang resolved
+
+#### Incident Table
+
+| Kolom | Keterangan |
+|---|---|
+| **Status** | OPEN atau RESOLVED dengan badge warna |
+| **Message** | Deskripsi incident (misal: "Source X is DOWN") |
+| **Started** — Waktu incident dimulai (relative time) |
+| **Resolved** — Waktu incident selesai (jika resolved) |
+| **Duration** — Durasi downtime dalam format human-readable |
+
+> **Notifikasi:**
+> - Email dan Telegram terkirim saat source DOWN
+> - Email dan Telegram terkirim saat source kembali UP dengan informasi downtime duration
+
+---
+
+### 9.6 Audit Trail
+
+**Navigasi:** Sidebar → **Compliance** → **Audit Trail**
 
 Catatan aktivitas yang **tidak bisa dihapus** — cocok untuk keperluan compliance dan keamanan.
 
@@ -637,9 +678,9 @@ Log dengan kategori `AUDIT_TRAIL` akan muncul di halaman ini. Gunakan kolom `Sea
 
 ---
 
-### 9.6 Status Page
+### 9.7 Status Page
 
-**Navigasi:** Sidebar → **Status Page**
+**Navigasi:** Sidebar → **Observe** → **Status**
 
 Halaman monitoring uptime semua source yang terdaftar. Data **diperbarui otomatis setiap 60 detik**.
 
@@ -656,9 +697,9 @@ Status yang mungkin muncul:
 
 ---
 
-### 9.7 Config Manager
+### 9.8 Config Manager
 
-**Navigasi:** Sidebar → **Config**
+**Navigasi:** Sidebar → **Manage** → **Config**
 
 Simpan dan kelola konfigurasi per source secara terpusat — tanpa perlu deploy ulang.
 

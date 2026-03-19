@@ -3,10 +3,29 @@ import { motion } from 'framer-motion';
 import { Activity, Clock, AlertTriangle, TrendingUp, RefreshCw, Gauge } from 'lucide-react';
 import SelectField from '../shared/components/SelectField';
 import { apmApi, sourcesApi } from '../shared/lib/api';
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+} from 'recharts';
 
 interface EndpointStat {
   endpoint: string;
   count: number;
+  p50: number;
+  p95: number;
+  p99: number;
+}
+
+interface TimelineData {
+  timestamp: string;
+  request_count: number;
+  avg_duration: number;
   p50: number;
   p95: number;
   p99: number;
@@ -44,6 +63,7 @@ export default function APM() {
   const [sources, setSources] = useState<Source[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
+  const [timeline, setTimeline] = useState<TimelineData[]>([]);
 
   const fetchStats = useCallback(async () => {
     setIsLoading(true);
@@ -63,9 +83,24 @@ export default function APM() {
     }
   }, [period, sourceId]);
 
+  const fetchTimeline = useCallback(async () => {
+    try {
+      const { data } = await apmApi.timeline({
+        period,
+        source_id: sourceId || undefined,
+        interval: '1h',
+      });
+      setTimeline(data.data || []);
+    } catch (err) {
+      console.error('Failed to fetch timeline', err);
+      setTimeline([]);
+    }
+  }, [period, sourceId]);
+
   useEffect(() => {
     fetchStats();
-  }, [fetchStats]);
+    fetchTimeline();
+  }, [fetchStats, fetchTimeline]);
 
   useEffect(() => {
     sourcesApi.getAll().then(({ data }) => setSources(data.data ?? [])).catch(console.error);
@@ -156,6 +191,44 @@ export default function APM() {
           </motion.div>
         ))}
       </div>
+
+      {/* Timeline Chart */}
+      {timeline.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="rounded-2xl bg-white/2 border border-white/5 p-6"
+        >
+          <h3 className="text-sm font-semibold text-zinc-300 mb-4">Response Time Timeline</h3>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={timeline}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                <XAxis
+                  dataKey="timestamp"
+                  stroke="#52525b"
+                  fontSize={12}
+                  tickFormatter={(value) => new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                />
+                <YAxis stroke="#52525b" fontSize={12} />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#18181b',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: '8px',
+                  }}
+                  formatter={(value) => [`${Math.round(Number(value))} ms`, '']}
+                  labelFormatter={(label) => new Date(label).toLocaleString()}
+                />
+                <Legend />
+                <Line type="monotone" dataKey="p50" name="P50" stroke="#10b981" strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="p95" name="P95" stroke="#3b82f6" strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="p99" name="P99" stroke="#ef4444" strokeWidth={2} dot={false} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </motion.div>
+      )}
 
       {/* Table */}
       <motion.div
