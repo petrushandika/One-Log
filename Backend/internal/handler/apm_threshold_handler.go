@@ -142,3 +142,43 @@ func (h *APMThresholdHandler) GetSlowQueries(c *gin.Context) {
 
 	utils.Success(c, http.StatusOK, "Slow queries retrieved successfully", queries)
 }
+
+// GET /api/apm/slow-queries/trend
+func (h *APMThresholdHandler) GetSlowQueryTrend(c *gin.Context) {
+	sourceID := c.Query("source_id")
+	days, _ := strconv.Atoi(c.DefaultQuery("days", "30"))
+
+	trend, err := h.service.GetSlowQueryTrend(sourceID, days)
+	if err != nil {
+		utils.Error(c, http.StatusInternalServerError, "Failed to fetch slow query trend", err.Error())
+		return
+	}
+
+	utils.Success(c, http.StatusOK, "Slow query trend retrieved successfully", trend)
+}
+
+// GET /api/apm/apdex
+func (h *APMThresholdHandler) GetApdexScore(c *gin.Context) {
+	sourceID := c.Query("source_id")
+	endpoint := c.Query("endpoint")
+	thresholdMs, _ := strconv.Atoi(c.DefaultQuery("threshold_ms", "1000"))
+
+	score, err := h.service.CalculateApdexScore(sourceID, endpoint, thresholdMs)
+	if err != nil {
+		utils.Error(c, http.StatusInternalServerError, "Failed to calculate Apdex score", err.Error())
+		return
+	}
+
+	utils.Success(c, http.StatusOK, "Apdex score calculated successfully", score)
+}
+
+// GET /api/apm/threshold-alerts
+func (h *APMThresholdHandler) GetThresholdAlerts(c *gin.Context) {
+	alerts, err := h.service.CheckThresholdAlerts()
+	if err != nil {
+		utils.Error(c, http.StatusInternalServerError, "Failed to check threshold alerts", err.Error())
+		return
+	}
+
+	utils.Success(c, http.StatusOK, "Threshold alerts retrieved successfully", alerts)
+}

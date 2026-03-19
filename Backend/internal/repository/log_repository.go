@@ -39,6 +39,20 @@ type LogRepository interface {
 
 	// Phase 3: Slow Query Detector
 	GetSlowQueries(sourceID string, thresholdMs int) ([]map[string]interface{}, error)
+
+	// Phase 3 Extended: APM Features
+	GetSlowQueryTrend(sourceID string, days int) ([]map[string]interface{}, error)
+	CalculateApdexScore(sourceID string, endpoint string, thresholdMs int) (*ApdexResult, error)
+	GetEndpointLatencyStats(sourceID string, endpoint string) (map[string]interface{}, error)
+}
+
+// ApdexResult holds the result of Apdex calculation
+type ApdexResult struct {
+	Score      float64 `json:"score"`
+	Satisfied  int     `json:"satisfied"`
+	Tolerating int     `json:"tolerating"`
+	Frustrated int     `json:"frustrated"`
+	Total      int     `json:"total"`
 }
 
 // Struct private for implementation

@@ -91,6 +91,11 @@ func main() {
 	activityAnalyticsService := service.NewActivityAnalyticsService(activityAnalyticsRepo)
 	activityAnalyticsHandler := handler.NewActivityAnalyticsHandler(activityAnalyticsService)
 
+	// Phase 2 Extended: Activity Monitor (Feed, Top Users, Compliance Export)
+	activityMonitorRepo := repository.NewActivityMonitorRepository(db)
+	activityMonitorService := service.NewActivityMonitorService(activityMonitorRepo)
+	activityMonitorHandler := handler.NewActivityMonitorHandler(activityMonitorService)
+
 	// Phase 3: APM Thresholds
 	apmThresholdRepo := repository.NewAPMThresholdRepository(db)
 	apmThresholdService := service.NewAPMThresholdService(apmThresholdRepo, logRepo)
@@ -170,6 +175,14 @@ func main() {
 			admin.GET("/activity/analytics/heatmap", activityAnalyticsHandler.GetFailedLoginHeatmap)
 			admin.GET("/activity/sessions", activityAnalyticsHandler.GetRecentSessions)
 
+			// Activity Monitor (Phase 2 Extended)
+			admin.GET("/activity/feed", activityMonitorHandler.GetActivityFeed)
+			admin.GET("/activity/top-users", activityMonitorHandler.GetTopActiveUsers)
+			admin.GET("/activity/by-resource", activityMonitorHandler.GetActivityByResource)
+			admin.GET("/activity/users/:user_id/profile", activityMonitorHandler.GetUserProfile)
+			admin.POST("/activity/compliance-export", activityMonitorHandler.RequestComplianceExport)
+			admin.GET("/activity/compliance-exports", activityMonitorHandler.GetComplianceExports)
+
 			// APM (Phase 3)
 			admin.GET("/apm/endpoints", apmHandler.EndpointStats)
 			admin.GET("/apm/timeline", apmHandler.ResponseTimeTimeline)
@@ -181,6 +194,9 @@ func main() {
 			admin.PATCH("/apm/thresholds/:id", apmThresholdHandler.Update)
 			admin.DELETE("/apm/thresholds/:id", apmThresholdHandler.Delete)
 			admin.GET("/apm/slow-queries", apmThresholdHandler.GetSlowQueries)
+			admin.GET("/apm/slow-queries/trend", apmThresholdHandler.GetSlowQueryTrend)
+			admin.GET("/apm/apdex", apmThresholdHandler.GetApdexScore)
+			admin.GET("/apm/threshold-alerts", apmThresholdHandler.GetThresholdAlerts)
 
 			// Issues (Phase 5)
 			admin.GET("/issues", issueHandler.List)
