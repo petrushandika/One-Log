@@ -8,6 +8,7 @@ import (
 // APMThresholdRepository defines methods for APM threshold management
 type APMThresholdRepository interface {
 	List(sourceID string) ([]domain.APMThreshold, error)
+	GetByID(id uint) (*domain.APMThreshold, error)
 	Create(threshold *domain.APMThreshold) error
 	Update(id uint, threshold *domain.APMThreshold) error
 	Delete(id uint) error
@@ -35,6 +36,15 @@ func (r *apmThresholdRepository) List(sourceID string) ([]domain.APMThreshold, e
 		return nil, err
 	}
 	return thresholds, nil
+}
+
+func (r *apmThresholdRepository) GetByID(id uint) (*domain.APMThreshold, error) {
+	var threshold domain.APMThreshold
+	err := r.db.First(&threshold, id).Error
+	if err != nil {
+		return nil, err
+	}
+	return &threshold, nil
 }
 
 func (r *apmThresholdRepository) Create(threshold *domain.APMThreshold) error {

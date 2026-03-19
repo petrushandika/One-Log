@@ -30,6 +30,24 @@ func (h *APMThresholdHandler) List(c *gin.Context) {
 	utils.Success(c, http.StatusOK, "Thresholds retrieved successfully", thresholds)
 }
 
+// GET /api/apm/thresholds/:id
+func (h *APMThresholdHandler) Get(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utils.Error(c, http.StatusBadRequest, "Invalid ID", err.Error())
+		return
+	}
+
+	threshold, err := h.service.GetByID(uint(id))
+	if err != nil {
+		utils.Error(c, http.StatusNotFound, "Threshold not found", err.Error())
+		return
+	}
+
+	utils.Success(c, http.StatusOK, "Threshold retrieved successfully", threshold)
+}
+
 // POST /api/apm/thresholds
 func (h *APMThresholdHandler) Create(c *gin.Context) {
 	var req struct {

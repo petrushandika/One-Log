@@ -7,6 +7,7 @@ import (
 
 type APMThresholdService interface {
 	List(sourceID string) ([]domain.APMThreshold, error)
+	GetByID(id uint) (*domain.APMThreshold, error)
 	Create(sourceID string, endpoint string, p95Limit int, p99Limit int, emailNotify bool) (*domain.APMThreshold, error)
 	Update(id uint, p95Limit int, p99Limit int, emailNotify bool) error
 	Delete(id uint) error
@@ -24,6 +25,10 @@ func NewAPMThresholdService(repo repository.APMThresholdRepository, logRepo repo
 
 func (s *apmThresholdService) List(sourceID string) ([]domain.APMThreshold, error) {
 	return s.repo.List(sourceID)
+}
+
+func (s *apmThresholdService) GetByID(id uint) (*domain.APMThreshold, error) {
+	return s.repo.GetByID(id)
 }
 
 func (s *apmThresholdService) Create(sourceID string, endpoint string, p95Limit int, p99Limit int, emailNotify bool) (*domain.APMThreshold, error) {

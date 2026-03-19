@@ -713,6 +713,164 @@ Daftar aktivitas yang terdeteksi mencurigakan (level ERROR pada AUTH_EVENT, atau
 
 ---
 
+### `GET /api/activity/analytics/methods`
+
+Breakdown authentication methods dengan success/failed rates.
+
+**Auth**: JWT
+
+**Query Parameters:**
+
+| Param       | Default | Description                    |
+| ----------- | ------- | ------------------------------ |
+| `source_id` | -       | Filter by app slug             |
+| `period`    | `24h`   | `24h`, `7d`, `30d`, `90d`      |
+
+**Response `200 OK`:**
+
+```json
+{
+  "status": "success",
+  "data": [
+    {
+      "method": "google_oauth",
+      "total": 1250,
+      "success": 1200,
+      "failed": 50,
+      "success_rate": 96.0,
+      "failed_rate": 4.0
+    },
+    {
+      "method": "system_password",
+      "total": 450,
+      "success": 420,
+      "failed": 30,
+      "success_rate": 93.3,
+      "failed_rate": 6.7
+    }
+  ]
+}
+```
+
+---
+
+### `GET /api/activity/analytics/timeline`
+
+Timeline login activity per jam.
+
+**Auth**: JWT
+
+**Query Parameters:**
+
+| Param       | Default | Description                    |
+| ----------- | ------- | ------------------------------ |
+| `source_id` | -       | Filter by app slug             |
+| `days`      | `7`     | Range hari (1-90)              |
+
+**Response `200 OK`:**
+
+```json
+{
+  "status": "success",
+  "data": [
+    {
+      "hour": "2026-03-19T10:00:00Z",
+      "logins": 45,
+      "failed": 3
+    },
+    {
+      "hour": "2026-03-19T11:00:00Z",
+      "logins": 62,
+      "failed": 5
+    }
+  ]
+}
+```
+
+---
+
+### `GET /api/activity/analytics/heatmap`
+
+Heatmap failed logins berdasarkan hari dan jam.
+
+**Auth**: JWT
+
+**Query Parameters:**
+
+| Param       | Default | Description                    |
+| ----------- | ------- | ------------------------------ |
+| `source_id` | -       | Filter by app slug             |
+| `days`      | `30`    | Range hari (1-90)              |
+
+**Response `200 OK`:**
+
+```json
+{
+  "status": "success",
+  "data": [
+    {
+      "day_of_week": 1,
+      "hour": 14,
+      "failed_count": 23
+    },
+    {
+      "day_of_week": 5,
+      "hour": 9,
+      "failed_count": 15
+    }
+  ]
+}
+```
+
+> **Day of week**: 0 = Sunday, 1 = Monday, ... 6 = Saturday
+
+---
+
+### `GET /api/activity/sessions`
+
+Daftar active user sessions.
+
+**Auth**: JWT
+
+**Query Parameters:**
+
+| Param       | Default | Description                    |
+| ----------- | ------- | ------------------------------ |
+| `source_id` | -       | Filter by app slug             |
+| `status`    | -       | `active`, `expired`            |
+| `page`      | `1`     | Nomor halaman                  |
+| `limit`     | `20`    | Item per halaman               |
+
+**Response `200 OK`:**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "items": [
+      {
+        "id": "sess_abc123",
+        "user_id": "usr_456",
+        "source_id": "absensi-prod",
+        "ip_address": "103.120.45.1",
+        "user_agent": "Mozilla/5.0...",
+        "started_at": "2026-03-19T08:00:00Z",
+        "expires_at": "2026-03-19T16:00:00Z",
+        "is_active": true
+      }
+    ],
+    "meta": {
+      "total": 156,
+      "page": 1,
+      "limit": 20,
+      "total_pages": 8
+    }
+  }
+}
+```
+
+---
+
 ## 7. Statistics
 
 ### `GET /api/stats/overview`
@@ -931,6 +1089,212 @@ Time-series response time data for APM charts.
   ]
 }
 ```
+
+---
+
+### `GET /api/apm/thresholds`
+
+List all APM latency thresholds with alert configuration.
+
+**Auth**: JWT
+
+**Query Parameters:**
+
+| Param       | Default | Description                 |
+| ----------- | ------- | --------------------------- |
+| `source_id` | —       | Filter by source slug       |
+
+**Response `200 OK`:**
+
+```json
+{
+  "status": "success",
+  "data": [
+    {
+      "id": 1,
+      "source_id": "absensi-prod",
+      "endpoint": "/api/users",
+      "threshold_ms": 1000,
+      "window_minutes": 5,
+      "enabled": true,
+      "created_at": "2026-03-18T08:00:00Z",
+      "updated_at": "2026-03-18T08:00:00Z"
+    }
+  ]
+}
+```
+
+---
+
+### `POST /api/apm/thresholds`
+
+Create a new latency threshold for alerting.
+
+**Auth**: JWT
+
+**Request:**
+
+```json
+{
+  "source_id": "absensi-prod",
+  "endpoint": "/api/users",
+  "threshold_ms": 1000,
+  "window_minutes": 5,
+  "enabled": true
+}
+```
+
+**Field Validation:**
+
+| Field            | Type    | Required | Notes                                      |
+| ---------------- | ------- | -------- | ------------------------------------------ |
+| `source_id`      | string  | ✅       | Source slug yang valid                     |
+| `endpoint`       | string  | ✅       | Path endpoint (e.g., `/api/users`)         |
+| `threshold_ms`   | int     | ✅       | Latency threshold dalam milisecond (> 0)   |
+| `window_minutes` | int     | ✅       | Jendela waktu evaluasi (1-60 menit)        |
+| `enabled`        | bool    | ❌       | Default: `true`                            |
+
+**Response `201 Created`:**
+
+```json
+{
+  "status": "success",
+  "message": "Threshold created",
+  "data": {
+    "id": 1,
+    "source_id": "absensi-prod",
+    "endpoint": "/api/users",
+    "threshold_ms": 1000,
+    "window_minutes": 5,
+    "enabled": true,
+    "created_at": "2026-03-19T10:00:00Z"
+  }
+}
+```
+
+---
+
+### `GET /api/apm/thresholds/:id`
+
+Get a specific threshold by ID.
+
+**Auth**: JWT
+
+**Response `200 OK`:**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "id": 1,
+    "source_id": "absensi-prod",
+    "endpoint": "/api/users",
+    "threshold_ms": 1000,
+    "window_minutes": 5,
+    "enabled": true,
+    "created_at": "2026-03-18T08:00:00Z"
+  }
+}
+```
+
+---
+
+### `PATCH /api/apm/thresholds/:id`
+
+Update an existing threshold.
+
+**Auth**: JWT
+
+**Request:**
+
+```json
+{
+  "threshold_ms": 1500,
+  "enabled": false
+}
+```
+
+**Response `200 OK`:**
+
+```json
+{
+  "status": "success",
+  "message": "Threshold updated",
+  "data": {
+    "id": 1,
+    "threshold_ms": 1500,
+    "enabled": false,
+    "updated_at": "2026-03-19T11:00:00Z"
+  }
+}
+```
+
+---
+
+### `DELETE /api/apm/thresholds/:id`
+
+Delete a threshold.
+
+**Auth**: JWT
+
+**Response `200 OK`:**
+
+```json
+{
+  "status": "success",
+  "message": "Threshold deleted"
+}
+```
+
+---
+
+### `GET /api/apm/slow-queries`
+
+Detect slow queries/requests that exceed thresholds.
+
+**Auth**: JWT
+
+**Query Parameters:**
+
+| Param       | Default | Description                 |
+| ----------- | ------- | --------------------------- |
+| `source_id` | —       | Filter by source slug       |
+| `period`    | `24h`   | `24h`, `7d`, `30d`          |
+| `min_ms`    | —       | Minimum duration (ms)       |
+| `page`      | `1`     | Page number                 |
+| `limit`     | `20`    | Items per page              |
+
+**Response `200 OK`:**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "items": [
+      {
+        "id": 12345,
+        "source_id": "absensi-prod",
+        "endpoint": "/api/reports/generate",
+        "duration_ms": 5200,
+        "method": "POST",
+        "timestamp": "2026-03-19T09:15:00Z",
+        "context": {
+          "query": "SELECT * FROM large_table WHERE...",
+          "user_id": "usr_789"
+        }
+      }
+    ],
+    "meta": {
+      "total": 15,
+      "page": 1,
+      "limit": 20,
+      "total_pages": 1
+    }
+  }
+}
+```
+
+> **Note**: Slow queries are detected from `PERFORMANCE` category logs where `duration_ms` exceeds defined thresholds.
 
 ---
 

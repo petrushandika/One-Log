@@ -60,17 +60,17 @@ Fondasi sistem: terima log, simpan, tampilkan, dan notifikasi.
 
 ## ✅ Fase 2 — Activity Monitor & Audit Trail
 
-**Status**: Implemented
+**Status**: ✅ Fully Implemented
 
 Mencatat **siapa melakukan apa, dari mana, kapan** — bukan hanya error, tapi seluruh jejak aktivitas pengguna dan riwayat perubahan data yang tidak bisa diubah.
 
 ### Auth Event Tracking
 
 - [x] **Standardized AUTH_EVENT payload** — kontrak field untuk semua auth methods
-- [ ] **Auth Method Dashboard** — breakdown pie chart: Google vs Manual vs GitHub vs lainnya
-- [ ] **Login Timeline** — visual timeline login events per source per hari
-- [ ] **Failed Login Heatmap** — visualisasi jam-jam dengan high failed login rate
-- [ ] **Recent Sessions Table** — user, auth_method, IP, browser, device, timestamp, source
+- [x] **Auth Method Dashboard** — breakdown pie chart: Google vs Manual vs GitHub vs lainnya
+- [x] **Login Timeline** — visual timeline login events per source per hari
+- [x] **Failed Login Heatmap** — visualisasi jam-jam dengan high failed login rate
+- [x] **Recent Sessions Table** — user, auth_method, IP, browser, device, timestamp, source
 - [x] **Brute Force Detection** — alert jika `login_failed` > threshold dari satu IP dalam 10 menit
 
 **Auth methods yang didukung:**
@@ -121,10 +121,10 @@ Catat setiap perubahan data penting di aplikasi client (CMS, Absensi, dll.) seba
 
 ### User Activity Trail
 
-- [ ] **Activity Feed** — feed aktivitas user (page_view, create, update, delete, export)
-- [ ] **User Profile View** — click user_id → lihat semua aktivitas user lintas semua source
-- [ ] **Top Active Users** — siapa user yang paling aktif per source
-- [ ] **Activity by Resource** — berapa kali resource tertentu diakses/diubah
+- [x] **Activity Feed** — feed aktivitas user (page_view, create, update, delete, export)
+- [x] **User Profile View** — click user_id → lihat semua aktivitas user lintas semua source
+- [x] **Top Active Users** — siapa user yang paling aktif per source
+- [x] **Activity by Resource** — berapa kali resource tertentu diakses/diubah
 
 ### API Enhancements
 
@@ -132,12 +132,16 @@ Catat setiap perubahan data penting di aplikasi client (CMS, Absensi, dll.) seba
 - [x] `GET /api/activity/summary` — agregat login count by auth_method & event_type
 - [x] `GET /api/activity/users/:user_id` — semua aktivitas satu user ID lintas semua source
 - [x] `GET /api/activity/suspicious` — login mencurigakan & anomali
+- [x] `GET /api/activity/analytics/methods` — breakdown auth methods (pie chart data)
+- [x] `GET /api/activity/analytics/timeline` — login timeline per hari
+- [x] `GET /api/activity/analytics/heatmap` — failed login heatmap by hour/day
+- [x] `GET /api/activity/sessions` — recent sessions table with pagination
 
 ---
 
 ## ✅ Fase 3 — Performance Monitoring (APM)
 
-**Status**: Implemented
+**Status**: ✅ Fully Implemented
 
 Jangan hanya catat **kapan** error terjadi — catat juga **seberapa lambat** sistem berjalan.
 
@@ -145,13 +149,13 @@ Jangan hanya catat **kapan** error terjadi — catat juga **seberapa lambat** si
 
 - [x] **Endpoint Latency Log** — catat waktu response setiap API di aplikasi client dengan `category: PERFORMANCE`
 - [x] **P50 / P95 / P99 Stats** — agregasi persentil untuk setiap endpoint via `GET /api/apm/endpoints`
-- [ ] **Threshold Alert** — kirim email jika rata-rata response time > X ms (konfigurabel per source)
-- [ ] **Response Time Timeline** — Line chart di dashboard untuk melihat tren dari waktu ke waktu per endpoint
+- [x] **Threshold Alert** — kirim email jika rata-rata response time > X ms (konfigurabel per source)
+- [x] **Response Time Timeline** — Line chart di dashboard untuk melihat tren dari waktu ke waktu per endpoint
 
 ### Slow Query Detector
 
-- [ ] **Slow Query Log** — aplikasi client kirim log dengan `category: PERFORMANCE` saat query > threshold
-- [ ] **Payload standar slow query:**
+- [x] **Slow Query Log** — aplikasi client kirim log dengan `category: PERFORMANCE` saat query > threshold
+- [x] **Payload standar slow query:**
 
 ```json
 {
@@ -170,14 +174,26 @@ Jangan hanya catat **kapan** error terjadi — catat juga **seberapa lambat** si
 }
 ```
 
-- [ ] **Slow Query Table** — tabel di dashboard yang menampilkan query terlambat per source
-- [ ] **Query Trend Chart** — grafik frekuensi slow query per hari per source
+- [x] **Slow Query Table** — tabel di dashboard yang menampilkan query terlambat per source
+- [x] **Query Trend Chart** — grafik frekuensi slow query per hari per source
 
 ### APM Dashboard
 
 - [x] **APM Overview Page** — halaman khusus performance di frontend
 - [x] **Per-Source APM** — pilih source lalu lihat latency trend per endpoint
+- [x] **APM Threshold Management** — CRUD thresholds untuk alert
+- [x] **Slow Queries API** — `GET /api/apm/slow-queries` untuk mendeteksi query lambat
 - [ ] **Apdex Score** (future) — skor kepuasan performa agregat berdasarkan threshold
+
+### APM API Endpoints
+
+- [x] `GET /api/apm/endpoints` — endpoint latency stats (P50/P95/P99)
+- [x] `GET /api/apm/timeline` — response time timeline data
+- [x] `GET /api/apm/thresholds` — list all thresholds
+- [x] `POST /api/apm/thresholds` — create new threshold
+- [x] `PATCH /api/apm/thresholds/:id` — update threshold
+- [x] `DELETE /api/apm/thresholds/:id` — delete threshold
+- [x] `GET /api/apm/slow-queries` — detect slow queries > threshold
 
 ---
 

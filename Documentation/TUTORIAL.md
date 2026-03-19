@@ -19,12 +19,13 @@
    - [Overview](#91-overview)
    - [Log Explorer](#92-log-explorer)
    - [Issues](#93-issues)
-   - [APM — Performa Endpoint](#94-apm--performa-endpoint)
-   - [Incidents](#95-incidents)
-   - [Audit Trail](#96-audit-trail)
-   - [Status Page](#97-status-page)
-   - [Config Manager](#98-config-manager)
-   - [One Log AI (Chatbot)](#99-one-log-ai-chatbot)
+   - [Activity Analytics](#94-activity-analytics)
+   - [APM — Performa Endpoint](#95-apm--performa-endpoint)
+   - [Incidents](#96-incidents)
+   - [Audit Trail](#97-audit-trail)
+   - [Status Page](#98-status-page)
+   - [Config Manager](#99-config-manager)
+   - [One Log AI (Chatbot)](#910-one-log-ai-chatbot)
 10. [Contoh Integrasi Lengkap](#10-contoh-integrasi-lengkap)
 11. [Troubleshooting](#11-troubleshooting)
 
@@ -569,7 +570,69 @@ Visualisasi agregat semua issues:
 
 ---
 
-### 9.4 APM — Performa Endpoint
+### 9.4 Activity Analytics
+
+**Navigasi:** Sidebar → **Security** → **Activity**
+
+Analisis aktivitas autentikasi dan login secara detail. Halaman ini membantu kamu memantau:
+
+- **Authentication Methods** — breakdown metode login yang digunakan (Google OAuth, password, dll.)
+- **Login Timeline** — visualisasi login per jam untuk mendeteksi pola
+- **Failed Login Heatmap** — heatmap untuk melihat kapan serangan brute force terjadi
+- **Active Sessions** — daftar session user yang sedang aktif
+
+#### Tab Methods
+
+Menampilkan breakdown metode autentikasi dengan statistik:
+- **Total** — jumlah login dengan metode tersebut
+- **Success** — jumlah login berhasil
+- **Failed** — jumlah login gagal
+- **Success Rate** — persentase keberhasilan
+
+Gunakan filter **Period** untuk melihat data 24h, 7d, 30d, atau 90d.
+
+#### Tab Timeline
+
+Chart garis yang menampilkan:
+- **Blue line** — jumlah login berhasil per jam
+- **Red line** — jumlah login gagal per jam
+
+Cocok untuk mendeteksi anomali login di waktu-waktu tertentu.
+
+#### Tab Heatmap
+
+Visualisasi matrix 7x24 (hari × jam) yang menunjukkan density failed login:
+- **Warna gelap** — banyak failed login
+- **Warna terang** — sedikit/tidak ada failed login
+
+Gunakan untuk mengidentifikasi pola serangan (misal: failed login selalu terjadi di hari Senin jam 2 pagi).
+
+#### Tab Sessions
+
+Tabel session user yang sedang aktif dengan informasi:
+- **User ID** — identifier user
+- **IP Address** — lokasi login
+- **Started** — waktu session dimulai
+- **Expires** — waktu session berakhir
+- **Status** — Active atau Expired
+
+> **Cara mengirim log Activity:**
+> ```json
+> {
+>   "category": "AUTH_EVENT",
+>   "level": "INFO",
+>   "message": "User login successful",
+>   "context": {
+>     "event_type": "login_success",
+>     "auth_method": "google_oauth",
+>     "user_id": "usr_123"
+>   }
+> }
+> ```
+
+---
+
+### 9.5 APM — Performa Endpoint
 
 **Navigasi:** Sidebar → **APM**
 
@@ -612,7 +675,7 @@ Pantau latensi endpoint API berdasarkan log dengan kategori `PERFORMANCE`.
 
 ---
 
-### 9.5 Incidents
+### 9.6 Incidents
 
 **Navigasi:** Sidebar → **Reliability** → **Incidents**
 
@@ -652,7 +715,7 @@ Visualisasi incident per hari (bar chart):
 
 ---
 
-### 9.6 Audit Trail
+### 9.7 Audit Trail
 
 **Navigasi:** Sidebar → **Compliance** → **Audit Trail**
 
@@ -678,7 +741,7 @@ Log dengan kategori `AUDIT_TRAIL` akan muncul di halaman ini. Gunakan kolom `Sea
 
 ---
 
-### 9.7 Status Page
+### 9.8 Status Page
 
 **Navigasi:** Sidebar → **Observe** → **Status**
 
@@ -697,7 +760,7 @@ Status yang mungkin muncul:
 
 ---
 
-### 9.8 Config Manager
+### 9.9 Config Manager
 
 **Navigasi:** Sidebar → **Manage** → **Config**
 
@@ -722,7 +785,7 @@ Buka tab **History** untuk melihat semua perubahan config sebelumnya. Klik **Rol
 
 ---
 
-### 9.8 One Log AI (Chatbot)
+### 9.10 One Log AI (Chatbot)
 
 **Lokasi:** Ikon chat di pojok kanan bawah layar (selalu terlihat di semua halaman)
 

@@ -177,6 +177,7 @@ func main() {
 			// APM Thresholds (Phase 3 Extended)
 			admin.GET("/apm/thresholds", apmThresholdHandler.List)
 			admin.POST("/apm/thresholds", apmThresholdHandler.Create)
+			admin.GET("/apm/thresholds/:id", apmThresholdHandler.Get)
 			admin.PATCH("/apm/thresholds/:id", apmThresholdHandler.Update)
 			admin.DELETE("/apm/thresholds/:id", apmThresholdHandler.Delete)
 			admin.GET("/apm/slow-queries", apmThresholdHandler.GetSlowQueries)
