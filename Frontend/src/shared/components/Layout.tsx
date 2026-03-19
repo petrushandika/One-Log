@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useLocation, Outlet, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutGrid, FileText, ShieldAlert, LogOut, Terminal, Menu, X, BugPlay, Activity, Radio, Server, SlidersHorizontal, AlertTriangle } from 'lucide-react';
+import { LayoutGrid, FileText, ShieldAlert, LogOut, Terminal, Menu, X, BugPlay, Activity, Radio, Server, SlidersHorizontal, AlertTriangle, Shield, FileDown } from 'lucide-react';
 import ChatWidget from './ChatWidget';
 import { NotificationProvider } from '../contexts/NotificationContext';
 import NotificationDropdown from './NotificationDropdown';
@@ -41,9 +41,17 @@ export default function Layout() {
       ],
     },
     {
+      label: 'Security',
+      items: [
+        { title: 'Activity Analytics', icon: Shield, path: '/activity' },
+        { title: 'Activity Feed', icon: Activity, path: '/activity/feed' },
+      ],
+    },
+    {
       label: 'Compliance',
       items: [
         { title: 'Audit Trail', icon: ShieldAlert, path: '/audit' },
+        { title: 'Compliance Export', icon: FileDown, path: '/compliance' },
       ],
     },
   ];
@@ -56,7 +64,10 @@ export default function Layout() {
     '/sources': 'Sources',
     '/config': 'Config',
     '/incidents': 'Incidents',
+    '/activity': 'Activity Analytics',
+    '/activity/feed': 'Activity Feed',
     '/audit': 'Audit Trail',
+    '/compliance': 'Compliance Export',
   };
 
   return (

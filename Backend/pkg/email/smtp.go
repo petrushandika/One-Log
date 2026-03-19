@@ -134,6 +134,24 @@ func (s *SMTPEmailService) SendRecoveryEmail(to string, sourceName string, downt
 	return s.sendEmail(to, body.Bytes())
 }
 
+// SendHTML sends a raw HTML email
+func (s *SMTPEmailService) SendHTML(to, subject, htmlBody string) error {
+	if s.Host == "" || s.Username == "" || s.Password == "" {
+		log.Println("WARNING: SMTP credentials not fully configured. Email skipped.")
+		return nil
+	}
+
+	var body bytes.Buffer
+	body.Write([]byte(fmt.Sprintf("To: %s\r\n", to)))
+	body.Write([]byte(fmt.Sprintf("From: %s\r\n", s.From)))
+	body.Write([]byte(fmt.Sprintf("Subject: %s\r\n", subject)))
+	body.Write([]byte("MIME-Version: 1.0\r\n"))
+	body.Write([]byte("Content-Type: text/html; charset=\"UTF-8\"\r\n\r\n"))
+	body.Write([]byte(htmlBody))
+
+	return s.sendEmail(to, body.Bytes())
+}
+
 // sendEmail is a helper to send raw email bytes via SMTP
 func (s *SMTPEmailService) sendEmail(to string, body []byte) error {
 	auth := smtp.PlainAuth("", s.Username, s.Password, s.Host)

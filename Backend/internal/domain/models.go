@@ -37,17 +37,20 @@ type LogEntry struct {
 // Issue is an aggregated error group keyed by LogEntry.Fingerprint.
 // Phase 5: Issue Tracker
 type Issue struct {
-	Fingerprint     string    `gorm:"type:varchar(64);primaryKey" json:"fingerprint"`
-	SourceID        string    `gorm:"type:uuid;not null;index" json:"source_id"`
-	Status          string    `gorm:"type:varchar(20);default:'OPEN';index" json:"status"`
-	Category        string    `gorm:"type:varchar(50);index" json:"category"`
-	Level           string    `gorm:"type:varchar(20);index" json:"level"`
-	MessageSample   string    `gorm:"type:text" json:"message_sample"`
-	OccurrenceCount int64     `gorm:"not null;default:1" json:"occurrence_count"`
-	FirstSeenAt     time.Time `gorm:"index" json:"first_seen_at"`
-	LastSeenAt      time.Time `gorm:"index" json:"last_seen_at"`
-	CreatedAt       time.Time `json:"created_at"`
-	UpdatedAt       time.Time `json:"updated_at"`
+	Fingerprint         string     `gorm:"type:varchar(64);primaryKey" json:"fingerprint"`
+	SourceID            string     `gorm:"type:uuid;not null;index" json:"source_id"`
+	Status              string     `gorm:"type:varchar(20);default:'OPEN';index" json:"status"`
+	Category            string     `gorm:"type:varchar(50);index" json:"category"`
+	Level               string     `gorm:"type:varchar(20);index" json:"level"`
+	MessageSample       string     `gorm:"type:text" json:"message_sample"`
+	OccurrenceCount     int64      `gorm:"not null;default:1" json:"occurrence_count"`
+	FirstSeenAt         time.Time  `gorm:"index" json:"first_seen_at"`
+	LastSeenAt          time.Time  `gorm:"index" json:"last_seen_at"`
+	ResolvedAt          *time.Time `json:"resolved_at"`
+	IsRegression        bool       `gorm:"default:false" json:"is_regression"`
+	RegressionAlertSent bool       `gorm:"default:false" json:"regression_alert_sent"`
+	CreatedAt           time.Time  `json:"created_at"`
+	UpdatedAt           time.Time  `json:"updated_at"`
 }
 
 type SourceConfig struct {
@@ -97,4 +100,33 @@ type Incident struct {
 	Message     string     `gorm:"type:text" json:"message"`
 	CreatedAt   time.Time  `json:"created_at"`
 	UpdatedAt   time.Time  `json:"updated_at"`
+}
+
+// APMThreshold stores latency thresholds for alerting
+// Phase 3: APM Threshold
+type APMThreshold struct {
+	ID          uint      `gorm:"primaryKey" json:"id"`
+	SourceID    string    `gorm:"type:uuid;not null;index" json:"source_id"`
+	Endpoint    string    `gorm:"type:varchar(255);not null" json:"endpoint"`
+	P95Limit    int       `gorm:"not null;default:1000" json:"p95_limit"` // milliseconds
+	P99Limit    int       `gorm:"not null;default:2000" json:"p99_limit"` // milliseconds
+	EmailNotify bool      `gorm:"not null;default:true" json:"email_notify"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}
+
+// Session tracks user login sessions
+// Phase 2: Activity Monitor
+type Session struct {
+	ID           uint      `gorm:"primaryKey" json:"id"`
+	UserID       string    `gorm:"type:varchar(100);not null;index" json:"user_id"`
+	SourceID     string    `gorm:"type:uuid;not null;index" json:"source_id"`
+	AuthMethod   string    `gorm:"type:varchar(50);not null" json:"auth_method"`
+	IPAddress    string    `gorm:"type:varchar(45)" json:"ip_address"`
+	Browser      string    `gorm:"type:varchar(100)" json:"browser"`
+	Device       string    `gorm:"type:varchar(100)" json:"device"`
+	IsActive     bool      `gorm:"not null;default:true" json:"is_active"`
+	LastActivity time.Time `json:"last_activity"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
 }

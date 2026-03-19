@@ -3,6 +3,7 @@
 .agents/
 /tmp/
 .cursor/
+.vscode/
 
 # Project
 node_modules/

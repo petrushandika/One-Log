@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar, Legend } from 'recharts';
 import { ArrowUpRight, ArrowDownRight, Activity, Terminal, Shield, AlertCircle, RefreshCw, LayoutDashboard } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { statsApi, sourcesApi } from '../shared/lib/api';
 
 interface StatsData {
@@ -16,15 +17,12 @@ interface StatsData {
 }
 
 export default function Overview() {
-  const [liveStats, setLiveStats] = useState<StatsData>({ total: 0, errors: 0, active: 0, security: 0 });
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [lastRefresh, setLastRefresh] = useState(new Date());
 
-  const fetchStats = async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
+  // Fetch stats using React Query
+  const { data: statsData, isLoading: statsLoading, error: statsError, refetch } = useQuery({
+    queryKey: ['stats-overview'],
+    queryFn: async () => {
       const [statsRes, sourcesRes] = await Promise.all([
         statsApi.getOverview(),
         sourcesApi.getAll(),
@@ -34,7 +32,9 @@ export default function Overview() {
       const sources: { status: string }[] = sourcesRes.data?.data ?? [];
       const activeCount = sources.filter((s) => s.status === 'ONLINE').length;
 
-      setLiveStats({
+      setLastRefresh(new Date());
+
+      return {
         total: d.total ?? 0,
         errors: (d.ERROR ?? 0) + (d.CRITICAL ?? 0),
         active: activeCount,
@@ -43,19 +43,17 @@ export default function Overview() {
         ERROR: d.ERROR ?? 0,
         WARN: d.WARN ?? 0,
         INFO: d.INFO ?? 0,
-      });
-      setLastRefresh(new Date());
-    } catch (err) {
-      console.error('Failed to fetch stats', err);
-      setError('Failed to load dashboard data. Please check your connection.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+      } as StatsData;
+    },
+  });
 
-  useEffect(() => {
-    fetchStats();
-  }, []);
+  const liveStats = statsData ?? { total: 0, errors: 0, active: 0, security: 0, CRITICAL: 0, ERROR: 0, WARN: 0, INFO: 0 };
+  const isLoading = statsLoading;
+  const error = statsError ? 'Failed to load dashboard data. Please check your connection.' : null;
+
+  const handleRefresh = () => {
+    refetch();
+  };
 
   const statCards = [
     {
@@ -108,19 +106,22 @@ export default function Overview() {
   ];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2.5">
-            <LayoutDashboard size={22} className="text-purple-400" />
-            Overview
-          </h1>
-          <p className="text-sm text-zinc-400">Everything happening on your systems</p>
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-xl bg-purple-500/10 text-purple-400">
+            <LayoutDashboard size={24} />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-white">Overview</h1>
+            <p className="text-sm text-zinc-400">Everything happening on your systems</p>
+          </div>
         </div>
         <button
-          onClick={fetchStats}
+          onClick={handleRefresh}
           disabled={isLoading}
-          className="flex items-center gap-2 px-3 py-2 text-xs rounded-xl bg-white/[0.03] border border-white/[0.06] text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.06] transition-all disabled:opacity-50"
+          className="flex items-center gap-2 px-3 py-2 text-xs rounded-xl bg-white/3 border border-white/5 text-zinc-400 hover:text-zinc-200 hover:bg-white/5 transition-all disabled:opacity-50"
         >
           <RefreshCw size={14} className={isLoading ? 'animate-spin' : ''} />
           {isLoading ? 'Loading...' : `Refreshed ${lastRefresh.toLocaleTimeString()}`}
@@ -140,7 +141,7 @@ export default function Overview() {
             <p className="text-sm text-red-300/70">Make sure the backend server is running on port 8080</p>
           </div>
           <button
-            onClick={fetchStats}
+            onClick={handleRefresh}
             className="px-3 py-1.5 text-sm bg-red-500/20 hover:bg-red-500/30 rounded-lg transition-colors"
           >
             Retry
@@ -156,7 +157,7 @@ export default function Overview() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.1, duration: 0.4 }}
-            className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05] backdrop-blur-sm flex flex-col justify-between"
+            className="p-6 rounded-xl bg-white/2 border border-white/5 flex flex-col justify-between"
           >
             <div className="flex items-start justify-between">
               <div className={`p-2 rounded-xl ${stat.bg} ${stat.color} border ${stat.border}`}>
@@ -192,7 +193,7 @@ export default function Overview() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.45, duration: 0.5 }}
-          className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05] backdrop-blur-sm"
+          className="p-6 rounded-xl bg-white/2 border border-white/5"
         >
           <h2 className="text-base font-semibold text-zinc-100 mb-4">Logs by Level</h2>
           <div className="h-52">
@@ -215,12 +216,12 @@ export default function Overview() {
           </div>
         </motion.div>
 
-        {/* Trend Chart (static placeholder — real chart needs time-series endpoint) */}
+        {/* Trend Chart */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5, duration: 0.5 }}
-          className="lg:col-span-2 p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05] backdrop-blur-sm"
+          className="lg:col-span-2 p-6 rounded-xl bg-white/2 border border-white/5"
         >
           <h2 className="text-base font-semibold text-zinc-100 mb-4">Log Ingestion Trend</h2>
           <div className="h-52 w-full">
@@ -250,7 +251,7 @@ export default function Overview() {
                 <YAxis stroke="#525252" fontSize={11} tickLine={false} axisLine={false} />
                 <Tooltip
                   contentStyle={{ background: '#09090b', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px' }}
-                  labelStyle={{ color: '#a1a1aa' }}
+                  labelStyle={{ color: '#71717a' }}
                 />
                 <Legend wrapperStyle={{ fontSize: '12px', color: '#71717a' }} />
                 <Area type="monotone" dataKey="logs" name="Total Logs" stroke="#a855f7" strokeWidth={2} fillOpacity={1} fill="url(#colorLogs)" />

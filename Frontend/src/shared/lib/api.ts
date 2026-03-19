@@ -97,6 +97,25 @@ export const activityApi = {
   byUser: (userId: string) => api.get(`/activity/users/${userId}`),
   suspicious: (params: { source_id?: string; page?: number; limit?: number } = {}) =>
     api.get('/activity/suspicious', { params }),
+  // Activity Analytics (Phase 2)
+  getAuthMethodBreakdown: (params: { days?: number } = {}) =>
+    api.get('/activity/analytics/methods', { params }),
+  getLoginTimeline: (params: { days?: number } = {}) =>
+    api.get('/activity/analytics/timeline', { params }),
+  getFailedLoginHeatmap: (params: { days?: number } = {}) =>
+    api.get('/activity/analytics/heatmap', { params }),
+  getSessions: (params: { page?: number; limit?: number } = {}) =>
+    api.get('/activity/sessions', { params }),
+  // Activity Feed (Phase 2 Extended)
+  getFeed: (params: { page?: number; limit?: number; action?: string } = {}) =>
+    api.get('/activity/feed', { params }),
+  getTopUsers: (params: { days?: number; limit?: number } = {}) =>
+    api.get('/activity/top-users', { params }),
+  // Compliance Export (Phase 2 Extended)
+  requestComplianceExport: (data: { source_id: string; format: string; date_from: string; date_to: string }) =>
+    api.post('/activity/compliance-export', data),
+  getComplianceExports: (params: { page?: number; limit?: number } = {}) =>
+    api.get('/activity/compliance-exports', { params }),
 };
 
 // ─── APM ─────────────────────────────────────────────────────────────────────
@@ -105,6 +124,17 @@ export const apmApi = {
     api.get('/apm/endpoints', { params }),
   timeline: (params: { source_id?: string; endpoint?: string; period?: string; interval?: string } = {}) =>
     api.get('/apm/timeline', { params }),
+  // APM Thresholds (Phase 3)
+  thresholds: {
+    list: () => api.get('/apm/thresholds'),
+    create: (data: { source_id: string; endpoint: string; p95_limit: number; p99_limit: number; email_notify: boolean }) =>
+      api.post('/apm/thresholds', data),
+    update: (id: string, data: { p95_limit: number; p99_limit: number; email_notify: boolean }) =>
+      api.patch(`/apm/thresholds/${id}`, data),
+    delete: (id: string) => api.delete(`/apm/thresholds/${id}`),
+  },
+  getSlowQueries: (params: { source_id?: string; threshold?: number } = {}) =>
+    api.get('/apm/slow-queries', { params }),
 };
 
 // ─── Issues ──────────────────────────────────────────────────────────────────

@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Activity, Clock, AlertTriangle, TrendingUp, RefreshCw, Gauge } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { Activity, Clock, AlertTriangle, TrendingUp, RefreshCw, Gauge, AlertCircle } from 'lucide-react';
 import SelectField from '../shared/components/SelectField';
 import { apmApi, sourcesApi } from '../shared/lib/api';
 import {
@@ -13,23 +14,6 @@ import {
   ResponsiveContainer,
   Legend,
 } from 'recharts';
-
-interface EndpointStat {
-  endpoint: string;
-  count: number;
-  p50: number;
-  p95: number;
-  p99: number;
-}
-
-interface TimelineData {
-  timestamp: string;
-  request_count: number;
-  avg_duration: number;
-  p50: number;
-  p95: number;
-  p99: number;
-}
 
 interface Source {
   id: string;
@@ -59,52 +43,48 @@ function latencyBadge(ms: number | null | undefined): string {
 export default function APM() {
   const [period, setPeriod] = useState('24h');
   const [sourceId, setSourceId] = useState('');
-  const [stats, setStats] = useState<EndpointStat[]>([]);
-  const [sources, setSources] = useState<Source[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
-  const [timeline, setTimeline] = useState<TimelineData[]>([]);
 
-  const fetchStats = useCallback(async () => {
-    setIsLoading(true);
-    try {
+  // Fetch sources
+  const { data: sources = [] } = useQuery({
+    queryKey: ['sources'],
+    queryFn: async () => {
+      const { data } = await sourcesApi.getAll();
+      return data.data ?? [];
+    },
+  });
+
+  // Fetch endpoint stats
+  const {
+    data: stats = [],
+    isLoading,
+    error,
+    refetch,
+    dataUpdatedAt
+  } = useQuery({
+    queryKey: ['apm-stats', period, sourceId],
+    queryFn: async () => {
       const { data } = await apmApi.endpointStats({
         period,
         source_id: sourceId || undefined,
       });
-      const rows = data.data;
-      setStats(Array.isArray(rows) ? rows : []);
-      setLastRefresh(new Date());
-    } catch (err) {
-      console.error('Failed to fetch APM stats', err);
-      setStats([]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [period, sourceId]);
+      return Array.isArray(data.data) ? data.data : [];
+    },
+  });
 
-  const fetchTimeline = useCallback(async () => {
-    try {
+  // Fetch timeline
+  const { data: timeline = [] } = useQuery({
+    queryKey: ['apm-timeline', period, sourceId],
+    queryFn: async () => {
       const { data } = await apmApi.timeline({
         period,
         source_id: sourceId || undefined,
         interval: '1h',
       });
-      setTimeline(data.data || []);
-    } catch (err) {
-      console.error('Failed to fetch timeline', err);
-      setTimeline([]);
-    }
-  }, [period, sourceId]);
+      return data.data || [];
+    },
+  });
 
-  useEffect(() => {
-    fetchStats();
-    fetchTimeline();
-  }, [fetchStats, fetchTimeline]);
-
-  useEffect(() => {
-    sourcesApi.getAll().then(({ data }) => setSources(data.data ?? [])).catch(console.error);
-  }, []);
+  const lastRefresh = dataUpdatedAt ? new Date(dataUpdatedAt) : null;
 
   const safeStats = Array.isArray(stats) ? stats : [];
   const avgP50 = safeStats.length ? safeStats.reduce((s, r) => s + (r.p50 ?? 0), 0) / safeStats.length : null;
@@ -116,12 +96,14 @@ export default function APM() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2.5">
-            <Gauge size={22} className="text-purple-400" />
-            APM
-          </h1>
-          <p className="text-sm text-zinc-400 mt-0.5">Application Performance Monitoring — endpoint latency percentiles</p>
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-xl bg-purple-500/10 text-purple-400">
+            <Gauge size={24} />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-white">APM</h1>
+            <p className="text-sm text-zinc-400">Application Performance Monitoring — endpoint latency percentiles</p>
+          </div>
         </div>
         <div className="flex items-center gap-3">
           {lastRefresh && (
@@ -130,9 +112,9 @@ export default function APM() {
             </span>
           )}
           <button
-            onClick={fetchStats}
+            onClick={() => refetch()}
             disabled={isLoading}
-            className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg bg-white/5 border border-white/10 text-zinc-300 hover:bg-white/10 transition-all disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg bg-white/5 border border-white/5 text-zinc-300 hover:bg-white/10 transition-all disabled:opacity-50"
           >
             <RefreshCw size={13} className={isLoading ? 'animate-spin' : ''} />
             Refresh
@@ -140,9 +122,30 @@ export default function APM() {
         </div>
       </div>
 
+      {/* Error Message */}
+      {error && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 flex items-center gap-3"
+        >
+          <AlertCircle size={20} />
+          <div className="flex-1">
+            <p className="font-medium">Failed to load APM data</p>
+          </div>
+          <button
+            onClick={() => refetch()}
+            className="px-3 py-1.5 text-sm bg-red-500/20 hover:bg-red-500/30 rounded-lg transition-colors flex items-center gap-1"
+          >
+            <RefreshCw size={14} />
+            Retry
+          </button>
+        </motion.div>
+      )}
+
       {/* Controls */}
       <div className="flex flex-col sm:flex-row gap-3">
-        <div className="flex rounded-xl overflow-hidden border border-white/10 bg-white/2">
+        <div className="flex rounded-xl overflow-hidden border border-white/5 bg-white/2">
           {PERIODS.map((p) => (
             <button
               key={p.value}
@@ -163,7 +166,7 @@ export default function APM() {
           wrapperClassName="min-w-[160px]"
         >
           <option value="">All Sources</option>
-          {sources.map((s) => (
+          {sources.map((s: Source) => (
             <option key={s.id} value={s.id}>{s.name}</option>
           ))}
         </SelectField>
@@ -181,7 +184,7 @@ export default function APM() {
             key={card.label}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="p-4 rounded-2xl bg-white/2 border border-white/5"
+            className="p-4 rounded-xl bg-white/2 border border-white/5"
           >
             <div className="flex items-center gap-2 mb-2">
               <card.icon size={15} className={card.color} />
@@ -197,7 +200,7 @@ export default function APM() {
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="rounded-2xl bg-white/2 border border-white/5 p-6"
+          className="bg-white/2 border border-white/5 rounded-xl p-6"
         >
           <h3 className="text-sm font-semibold text-zinc-300 mb-4">Response Time Timeline</h3>
           <div className="h-64">
@@ -234,7 +237,7 @@ export default function APM() {
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="rounded-2xl bg-white/2 border border-white/5 overflow-hidden"
+        className="bg-white/2 border border-white/5 rounded-xl overflow-hidden"
       >
         {isLoading ? (
           <div className="flex items-center justify-center h-48 text-zinc-500 text-sm gap-2">
@@ -243,7 +246,7 @@ export default function APM() {
           </div>
         ) : safeStats.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-48 text-center px-6">
-            <div className="p-3 rounded-2xl bg-purple-500/10 text-purple-400 mb-3">
+            <div className="p-3 rounded-xl bg-purple-500/10 text-purple-400 mb-3">
               <Activity size={28} />
             </div>
             <p className="text-zinc-300 font-semibold">No performance data found</p>
@@ -256,12 +259,12 @@ export default function APM() {
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
-                <tr className="border-b border-white/5 text-xs font-semibold uppercase tracking-wider text-zinc-400">
-                  <th className="px-6 py-4">Endpoint</th>
-                  <th className="px-6 py-4 text-right">Requests</th>
-                  <th className="px-6 py-4 text-right">P50</th>
-                  <th className="px-6 py-4 text-right">P95</th>
-                  <th className="px-6 py-4 text-right">P99</th>
+                <tr className="border-b border-white/5 text-xs font-semibold uppercase text-zinc-500">
+                  <th className="px-4 py-3">Endpoint</th>
+                  <th className="px-4 py-3 text-right">Requests</th>
+                  <th className="px-4 py-3 text-right">P50</th>
+                  <th className="px-4 py-3 text-right">P95</th>
+                  <th className="px-4 py-3 text-right">P99</th>
                 </tr>
               </thead>
               <tbody>
@@ -271,21 +274,21 @@ export default function APM() {
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: i * 0.03 }}
-                    className="border-b border-white/3 hover:bg-white/2 transition-colors"
+                    className="border-b border-white/5 hover:bg-white/5 transition-colors"
                   >
-                    <td className="px-6 py-3.5">
+                    <td className="px-4 py-3">
                       <code className="text-sm text-zinc-200 font-mono">{row.endpoint}</code>
                     </td>
-                    <td className="px-6 py-3.5 text-right text-sm text-zinc-400">
+                    <td className="px-4 py-3 text-right text-sm text-zinc-400">
                       {(row.count ?? 0).toLocaleString()}
                     </td>
-                    <td className={`px-6 py-3.5 text-right text-sm ${latencyBadge(row.p50)}`}>
+                    <td className={`px-4 py-3 text-right text-sm ${latencyBadge(row.p50)}`}>
                       {formatMs(row.p50)}
                     </td>
-                    <td className={`px-6 py-3.5 text-right text-sm ${latencyBadge(row.p95)}`}>
+                    <td className={`px-4 py-3 text-right text-sm ${latencyBadge(row.p95)}`}>
                       {formatMs(row.p95)}
                     </td>
-                    <td className={`px-6 py-3.5 text-right text-sm ${latencyBadge(row.p99)}`}>
+                    <td className={`px-4 py-3 text-right text-sm ${latencyBadge(row.p99)}`}>
                       {formatMs(row.p99)}
                     </td>
                   </motion.tr>

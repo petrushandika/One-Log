@@ -8,6 +8,9 @@ import APM from '../pages/APM';
 import Status from '../pages/Status';
 import Config from '../pages/Config';
 import Incidents from '../pages/Incidents';
+import ActivityAnalytics from '../pages/ActivityAnalytics';
+import ActivityFeed from '../pages/ActivityFeed';
+import ComplianceExport from '../pages/ComplianceExport';
 import Login from '../pages/Login';
 import ProtectedRoute from '../shared/components/ProtectedRoute';
 import { Terminal } from 'lucide-react';
@@ -43,7 +46,10 @@ export const router = createBrowserRouter([
       { path: 'sources', element: <Sources /> },
       { path: 'config', element: <Config /> },
       { path: 'incidents', element: <Incidents /> },
+      { path: 'activity', element: <ActivityAnalytics /> },
+      { path: 'activity/feed', element: <ActivityFeed /> },
       { path: 'audit', element: <Audit /> },
+      { path: 'compliance', element: <ComplianceExport /> },
     ],
   },
   {

@@ -51,7 +51,7 @@ export default function Incidents() {
 
       {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4">
+        <div className="bg-white/2 border border-white/5 rounded-xl p-4">
           <div className="flex items-center gap-2 text-red-400 mb-2">
             <AlertTriangle size={18} />
             <span className="text-sm font-medium">Open Incidents</span>
@@ -61,7 +61,7 @@ export default function Incidents() {
           </p>
         </div>
         
-        <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4">
+        <div className="bg-white/2 border border-white/5 rounded-xl p-4">
           <div className="flex items-center gap-2 text-emerald-400 mb-2">
             <CheckCircle size={18} />
             <span className="text-sm font-medium">Total Incidents</span>
@@ -69,7 +69,7 @@ export default function Incidents() {
           <p className="text-2xl font-bold text-white">{total}</p>
         </div>
         
-        <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4">
+        <div className="bg-white/2 border border-white/5 rounded-xl p-4">
           <div className="flex items-center gap-2 text-orange-400 mb-2">
             <Clock size={18} />
             <span className="text-sm font-medium">Page</span>
@@ -77,7 +77,7 @@ export default function Incidents() {
           <p className="text-2xl font-bold text-white">{page}</p>
         </div>
         
-        <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4">
+        <div className="bg-white/2 border border-white/5 rounded-xl p-4">
           <div className="flex items-center gap-2 text-blue-400 mb-2">
             <Calendar size={18} />
             <span className="text-sm font-medium">Limit</span>
@@ -105,20 +105,20 @@ export default function Incidents() {
       </div>
 
       {/* Incidents Table */}
-      <div className="bg-white/[0.02] border border-white/5 rounded-xl overflow-hidden">
+      <div className="bg-white/2 border border-white/5 rounded-xl overflow-hidden">
         <table className="w-full">
-          <thead className="bg-white/[0.03] border-b border-white/5">
+          <thead className="bg-white/5 border-b border-white/5">
             <tr>
-              <th className="text-left text-xs font-semibold uppercase text-zinc-500 px-4 py-3">Status</th>
-              <th className="text-left text-xs font-semibold uppercase text-zinc-500 px-4 py-3">Message</th>
-              <th className="text-left text-xs font-semibold uppercase text-zinc-500 px-4 py-3">Started</th>
-              <th className="text-left text-xs font-semibold uppercase text-zinc-500 px-4 py-3">Resolved</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold uppercase text-zinc-500">Status</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold uppercase text-zinc-500">Message</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold uppercase text-zinc-500">Started</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold uppercase text-zinc-500">Resolved</th>
             </tr>
           </thead>
           <tbody>
             {isLoading ? (
               <tr>
-                <td colSpan={4} className="text-center py-8 text-zinc-500">
+                <td colSpan={4} className="px-4 py-8 text-center text-zinc-500">
                   <div className="flex flex-col items-center gap-2">
                     <div className="w-6 h-6 border-2 border-zinc-600 border-t-purple-500 rounded-full animate-spin" />
                     <p>Loading incidents...</p>
@@ -127,7 +127,7 @@ export default function Incidents() {
               </tr>
             ) : error ? (
               <tr>
-                <td colSpan={4} className="text-center py-8">
+                <td colSpan={4} className="px-4 py-8 text-center">
                   <div className="flex flex-col items-center gap-2">
                     <AlertTriangle size={32} className="text-red-500" />
                     <p className="text-red-400">Failed to load incidents</p>
@@ -144,7 +144,7 @@ export default function Incidents() {
               </tr>
             ) : incidents.length === 0 ? (
               <tr>
-                <td colSpan={4} className="text-center py-8 text-zinc-500">
+                <td colSpan={4} className="px-4 py-8 text-center text-zinc-500">
                   <div className="flex flex-col items-center gap-2">
                     <CheckCircle size={32} className="text-emerald-500" />
                     <p>No incidents found</p>
@@ -153,7 +153,7 @@ export default function Incidents() {
               </tr>
             ) : (
               incidents.map((incident: Incident) => (
-                <tr key={incident.id} className="border-b border-white/5 hover:bg-white/[0.02]">
+                <tr key={incident.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
                   <td className="px-4 py-3">
                     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
                       incident.status === 'OPEN' 
@@ -189,21 +189,21 @@ export default function Incidents() {
 
       {/* Pagination */}
       {total > 0 && (
-        <div className="flex items-center justify-between px-4 py-3 bg-white/[0.02] border border-white/5 rounded-xl">
+        <div className="flex items-center justify-between px-4 py-3 bg-white/2 border border-white/5 rounded-xl">
           <div className="flex items-center gap-2 text-sm text-zinc-400">
             <span>Show</span>
-            <select
+            <SelectField
               value={limit}
               onChange={(e) => {
                 setLimit(Number(e.target.value));
                 setPage(1);
               }}
-              className="bg-white/3 border border-white/8 text-zinc-200 rounded-lg px-2 py-1 text-sm"
+              className="bg-white/3 border border-white/5 text-zinc-200 rounded-lg px-2 py-1 text-sm"
             >
               <option value={10}>10</option>
               <option value={20}>20</option>
               <option value={50}>50</option>
-            </select>
+            </SelectField>
             <span>of {total} items</span>
           </div>
           <div className="flex items-center gap-2">

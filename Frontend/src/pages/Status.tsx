@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Radio, CheckCircle, AlertTriangle, XCircle, Clock, RefreshCw, ExternalLink, Signal } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { Radio, CheckCircle, AlertTriangle, XCircle, Clock, RefreshCw, ExternalLink, Signal, AlertCircle } from 'lucide-react';
 import { statusApi } from '../shared/lib/api';
 
-interface Source {
+interface StatusSource {
   id: string;
   name: string;
   status: string;
@@ -28,51 +28,47 @@ function formatRelative(dateStr: string): string {
 }
 
 export default function Status() {
-  const [sources, setSources] = useState<Source[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
-
-  const fetchStatus = async () => {
-    setIsLoading(true);
-    try {
+  const {
+    data: sources = [],
+    isLoading,
+    error,
+    refetch,
+    dataUpdatedAt
+  } = useQuery<StatusSource[]>({
+    queryKey: ['status'],
+    queryFn: async () => {
       const { data } = await statusApi.getPublic();
-      setSources(data.data?.sources ?? []);
-      setLastRefresh(new Date());
-    } catch (err) {
-      console.error('Failed to fetch status', err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+      return (data.data?.sources ?? []) as StatusSource[];
+    },
+    refetchInterval: 60000, // Auto-refresh every 60s
+  });
 
-  useEffect(() => {
-    fetchStatus();
-    const interval = setInterval(fetchStatus, 60_000);
-    return () => clearInterval(interval);
-  }, []);
+  const lastRefresh = dataUpdatedAt ? new Date(dataUpdatedAt) : null;
 
-  const onlineCount = sources.filter((s) => s.status === 'ONLINE').length;
-  const degradedCount = sources.filter((s) => s.status === 'DEGRADED').length;
-  const offlineCount = sources.filter((s) => s.status === 'OFFLINE').length;
+  const onlineCount = sources.filter((s: StatusSource) => s.status === 'ONLINE').length;
+  const degradedCount = sources.filter((s: StatusSource) => s.status === 'DEGRADED').length;
+  const offlineCount = sources.filter((s: StatusSource) => s.status === 'OFFLINE').length;
   const allOperational = offlineCount === 0 && degradedCount === 0;
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2.5">
-            <Signal size={22} className="text-purple-400" />
-            Status Page
-          </h1>
-          <p className="text-sm text-zinc-400 mt-0.5">Real-time health status of all registered sources</p>
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-xl bg-purple-500/10 text-purple-400">
+            <Signal size={24} />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-white">Status Page</h1>
+            <p className="text-sm text-zinc-400">Real-time health status of all registered sources</p>
+          </div>
         </div>
         <div className="flex items-center gap-3">
           {lastRefresh && (
             <span className="text-xs text-zinc-600">Auto-refreshes every 60s · Last: {lastRefresh.toLocaleTimeString()}</span>
           )}
           <button
-            onClick={fetchStatus}
+            onClick={() => refetch()}
             disabled={isLoading}
             className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg bg-white/5 border border-white/10 text-zinc-300 hover:bg-white/10 transition-all disabled:opacity-50"
           >
@@ -82,12 +78,33 @@ export default function Status() {
         </div>
       </div>
 
+      {/* Error Message */}
+      {error && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 flex items-center gap-3"
+        >
+          <AlertCircle size={20} />
+          <div className="flex-1">
+            <p className="font-medium">Failed to load status</p>
+          </div>
+          <button
+            onClick={() => refetch()}
+            className="px-3 py-1.5 text-sm bg-red-500/20 hover:bg-red-500/30 rounded-lg transition-colors flex items-center gap-1"
+          >
+            <RefreshCw size={14} />
+            Retry
+          </button>
+        </motion.div>
+      )}
+
       {/* Overall Banner */}
       {sources.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
-          className={`flex items-center gap-3 px-5 py-4 rounded-2xl border ${
+          className={`flex items-center gap-3 px-5 py-4 rounded-xl border ${
             allOperational
               ? 'bg-emerald-500/10 border-emerald-500/20'
               : offlineCount > 0
@@ -125,7 +142,7 @@ export default function Status() {
         </div>
       ) : sources.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-48 text-center">
-          <div className="p-3 rounded-2xl bg-purple-500/10 text-purple-400 mb-3">
+          <div className="p-3 rounded-xl bg-purple-500/10 text-purple-400 mb-3">
             <Radio size={28} />
           </div>
           <p className="text-zinc-300 font-semibold">No sources registered</p>
@@ -133,7 +150,7 @@ export default function Status() {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {sources.map((source, i) => {
+          {sources.map((source: StatusSource, i: number) => {
             const cfg = STATUS_CONFIG[source.status] ?? STATUS_CONFIG.MAINTENANCE;
             const Icon = cfg.icon;
             return (
@@ -142,7 +159,7 @@ export default function Status() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.05 }}
-                className="p-5 rounded-2xl bg-white/[0.02] border border-white/[0.05] hover:bg-white/[0.03] transition-colors"
+                className="p-5 rounded-xl bg-white/2 border border-white/5 hover:bg-white/3 transition-colors"
               >
                 <div className="flex items-start justify-between gap-3 mb-3">
                   <div className="flex-1 min-w-0">

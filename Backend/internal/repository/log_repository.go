@@ -36,6 +36,40 @@ type LogRepository interface {
 	GetResponseTimeTimeline(period time.Duration, interval time.Duration, sourceID string, endpoint string, ownerUserID uint) ([]map[string]interface{}, error)
 	GetErrorRateTrend(days int, sourceID string, ownerUserID uint) ([]map[string]interface{}, error)
 	GetErrorHeatmap(days int, sourceID string, ownerUserID uint) ([]map[string]interface{}, error)
+
+	// Phase 3: Slow Query Detector
+	GetSlowQueries(sourceID string, thresholdMs int) ([]map[string]interface{}, error)
+
+	// Phase 3 Extended: APM Features
+	GetSlowQueryTrend(sourceID string, days int) ([]map[string]interface{}, error)
+	CalculateApdexScore(sourceID string, endpoint string, thresholdMs int) (*ApdexResult, error)
+	GetEndpointLatencyStats(sourceID string, endpoint string) (map[string]interface{}, error)
+
+	// Phase 5: Regression Detection
+	FindResolvedIssuesWithNewOccurrences() ([]IssueWithSource, error)
+	MarkAsRegression(fingerprint string) error
+}
+
+// IssueWithSource combines issue data with source name
+type IssueWithSource struct {
+	Fingerprint         string
+	SourceID            string
+	SourceName          string
+	Level               string
+	MessageSample       string
+	OccurrenceCount     int64
+	LastSeenAt          time.Time
+	ResolvedAt          *time.Time
+	RegressionAlertSent bool
+}
+
+// ApdexResult holds the result of Apdex calculation
+type ApdexResult struct {
+	Score      float64 `json:"score"`
+	Satisfied  int     `json:"satisfied"`
+	Tolerating int     `json:"tolerating"`
+	Frustrated int     `json:"frustrated"`
+	Total      int     `json:"total"`
 }
 
 // Struct private for implementation
@@ -705,6 +739,60 @@ FROM log_entries
 			"day_of_week": dayOfWeek,
 			"hour_of_day": hourOfDay,
 			"error_count": errorCount,
+		})
+	}
+	return out, nil
+}
+
+// GetSlowQueries returns queries exceeding threshold duration
+func (r *logRepository) GetSlowQueries(sourceID string, thresholdMs int) ([]map[string]interface{}, error) {
+	sql := `
+SELECT 
+    context->>'endpoint' as endpoint,
+    context->>'query_preview' as query_preview,
+    context->>'query_type' as query_type,
+    context->>'table' as table_name,
+    (context->>'duration_ms')::int as duration_ms,
+    created_at,
+    message
+FROM log_entries
+WHERE category = 'PERFORMANCE'
+AND (context->>'duration_ms')::int >= ?
+AND created_at >= NOW() - INTERVAL '7 days'
+`
+	args := []interface{}{thresholdMs}
+
+	if sourceID != "" {
+		sql += " AND source_id = ?"
+		args = append(args, sourceID)
+	}
+
+	sql += " ORDER BY duration_ms DESC LIMIT 100"
+
+	rows, err := r.db.Raw(sql, args...).Rows()
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	out := []map[string]interface{}{}
+	for rows.Next() {
+		var endpoint, queryPreview, queryType, tableName string
+		var durationMs int
+		var createdAt time.Time
+		var message string
+
+		if err := rows.Scan(&endpoint, &queryPreview, &queryType, &tableName, &durationMs, &createdAt, &message); err != nil {
+			continue
+		}
+		out = append(out, map[string]interface{}{
+			"endpoint":      endpoint,
+			"query_preview": queryPreview,
+			"query_type":    queryType,
+			"table":         tableName,
+			"duration_ms":   durationMs,
+			"created_at":    createdAt,
+			"message":       message,
 		})
 	}
 	return out, nil

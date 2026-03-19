@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
-import { motion } from 'framer-motion';
-import { ShieldAlert, Search, ChevronLeft, ChevronRight, AlertTriangle, Info, ShieldCheck } from 'lucide-react';
+import { useState } from 'react';
+import { ShieldAlert, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { activityApi } from '../shared/lib/api';
 import SelectField from '../shared/components/SelectField';
 import { categoryLabel } from '../shared/lib/utils';
@@ -24,40 +24,23 @@ const LEVEL_STYLES: Record<string, string> = {
   DEBUG: 'bg-zinc-500/10 text-zinc-400 border-zinc-500/20',
 };
 
-const LEVEL_ICONS: Record<string, React.ReactNode> = {
-  CRITICAL: <AlertTriangle size={14} />,
-  ERROR: <AlertTriangle size={14} />,
-  WARN: <AlertTriangle size={14} />,
-  INFO: <Info size={14} />,
-  DEBUG: <ShieldCheck size={14} />,
-};
-
 export default function Audit() {
-  const [activities, setActivities] = useState<ActivityLog[]>([]);
-  const [totalItems, setTotalItems] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [limit, setLimit] = useState(20);
   const [searchQuery, setSearchQuery] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
 
-  const maxPage = Math.max(1, Math.ceil(totalItems / limit));
-
-  const fetchActivity = useCallback(async () => {
-    setIsLoading(true);
-    try {
+  // Fetch activities using React Query
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['audit-logs', currentPage, limit],
+    queryFn: async () => {
       const { data } = await activityApi.list({ page: currentPage, limit });
-      setActivities(data.data?.items ?? []);
-      setTotalItems(data.data?.meta?.total ?? 0);
-    } catch (err) {
-      console.error('Failed to fetch activity', err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [currentPage, limit]);
+      return data.data;
+    },
+  });
 
-  useEffect(() => {
-    fetchActivity();
-  }, [fetchActivity]);
+  const activities: ActivityLog[] = data?.items || [];
+  const totalItems = data?.meta?.total || 0;
+  const maxPage = Math.max(1, Math.ceil(totalItems / limit));
 
   const displayed = searchQuery
     ? activities.filter(
@@ -80,14 +63,15 @@ export default function Audit() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2.5">
-          <ShieldAlert className="text-purple-400" size={22} />
-          Audit Trail
-        </h1>
-        <p className="text-sm text-zinc-400">
-          Immutable activity log — {totalItems.toLocaleString()} events tracked
-        </p>
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <div className="p-2 rounded-xl bg-purple-500/10 text-purple-400">
+          <ShieldAlert size={24} />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold text-white">Audit Trail</h1>
+          <p className="text-sm text-zinc-400">Immutable activity log — {totalItems.toLocaleString()} events tracked</p>
+        </div>
       </div>
 
       <div className="flex flex-col gap-4 md:flex-row md:items-center">
@@ -98,72 +82,76 @@ export default function Audit() {
             placeholder="Search message, category, IP..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-11 pr-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/5 text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-purple-500/30 transition-all text-sm"
+            className="w-full pl-11 pr-4 py-2.5 rounded-xl bg-white/3 border border-white/5 text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-purple-500/30 transition-all text-sm"
           />
         </div>
       </div>
 
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="rounded-2xl bg-white/[0.02] border border-white/5 backdrop-blur-sm overflow-hidden"
-      >
+      <div className="bg-white/2 border border-white/5 rounded-xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left">
-            <thead>
-              <tr className="border-b border-white/5 text-xs font-semibold uppercase tracking-wider text-zinc-400">
-                <th className="px-6 py-4">Timestamp</th>
-                <th className="px-6 py-4">Category</th>
-                <th className="px-6 py-4">Level</th>
-                <th className="px-6 py-4">Message</th>
-                <th className="px-6 py-4">Context</th>
-                <th className="px-6 py-4">IP Address</th>
+            <thead className="bg-white/5">
+              <tr>
+                <th className="px-4 py-3 text-xs font-semibold uppercase text-zinc-500">Time</th>
+                <th className="px-4 py-3 text-xs font-semibold uppercase text-zinc-500">Category</th>
+                <th className="px-4 py-3 text-xs font-semibold uppercase text-zinc-500">Level</th>
+                <th className="px-4 py-3 text-xs font-semibold uppercase text-zinc-500">Message</th>
+                <th className="px-4 py-3 text-xs font-semibold uppercase text-zinc-500">Source</th>
+                <th className="px-4 py-3 text-xs font-semibold uppercase text-zinc-500">IP Address</th>
+                <th className="px-4 py-3 text-xs font-semibold uppercase text-zinc-500">Context</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/[0.03] text-sm text-zinc-300">
+            <tbody className="divide-y divide-white/5">
               {isLoading ? (
-                Array.from({ length: 5 }).map((_, i) => (
-                  <tr key={i}>
-                    {Array.from({ length: 6 }).map((__, j) => (
-                      <td key={j} className="px-6 py-4">
-                        <div className="h-4 rounded bg-white/[0.03] animate-pulse" />
-                      </td>
-                    ))}
-                  </tr>
-                ))
+                <tr>
+                  <td colSpan={7} className="px-4 py-8 text-center text-zinc-400">
+                    <div className="flex items-center justify-center gap-2">
+                      <div className="w-5 h-5 border-2 border-purple-500/30 border-t-purple-500 rounded-full animate-spin" />
+                      Loading audit logs...
+                    </div>
+                  </td>
+                </tr>
+              ) : error ? (
+                <tr>
+                  <td colSpan={7} className="px-4 py-8 text-center text-red-400">
+                    Failed to load audit logs. Please try again.
+                  </td>
+                </tr>
               ) : displayed.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-zinc-500">
-                    No activity events found.
+                  <td colSpan={7} className="px-4 py-8 text-center text-zinc-500">
+                    {searchQuery ? 'No matching audit logs found' : 'No audit logs available'}
                   </td>
                 </tr>
               ) : (
-                displayed.map((item) => (
-                  <tr key={item.id} className="hover:bg-white/[0.01] transition-colors">
-                    <td className="px-6 py-4 text-xs font-mono text-zinc-500 whitespace-nowrap">
-                      {new Date(item.created_at).toLocaleString()}
+                displayed.map((activity) => (
+                  <tr key={activity.id} className="hover:bg-white/5 transition-colors">
+                    <td className="px-4 py-3 text-sm text-zinc-400 whitespace-nowrap">
+                      {new Date(activity.created_at).toLocaleString()}
                     </td>
-                    <td className="px-6 py-4">
-                      <span className="text-xs font-semibold text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded-md">
-                        {categoryLabel(item.category)}
-                      </span>
+                    <td className="px-4 py-3 text-sm text-zinc-300">
+                      {categoryLabel(activity.category)}
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-3">
                       <span
-                        className={`flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold border w-fit ${
-                          LEVEL_STYLES[item.level] ?? LEVEL_STYLES.DEBUG
+                        className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium border ${
+                          LEVEL_STYLES[activity.level] || LEVEL_STYLES.INFO
                         }`}
                       >
-                        {LEVEL_ICONS[item.level]}
-                        {item.level}
+                        {activity.level}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-zinc-200 max-w-xs truncate">{item.message}</td>
-                    <td className="px-6 py-4 text-xs text-zinc-500 max-w-xs truncate">
-                      {getContextDisplay(item.context)}
+                    <td className="px-4 py-3 text-sm text-zinc-200 max-w-md truncate" title={activity.message}>
+                      {activity.message}
                     </td>
-                    <td className="px-6 py-4 text-xs font-mono text-zinc-500">
-                      {item.ip_address || '—'}
+                    <td className="px-4 py-3 text-sm text-zinc-400 font-mono">
+                      {activity.source_id}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-zinc-400 font-mono">
+                      {activity.ip_address || '—'}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-zinc-500 max-w-xs truncate">
+                      {getContextDisplay(activity.context)}
                     </td>
                   </tr>
                 ))
@@ -172,47 +160,50 @@ export default function Audit() {
           </table>
         </div>
 
-        {/* Pagination Footer */}
-        <div className="p-4 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2 text-sm text-zinc-400">
-            <span>Show</span>
-            <SelectField
-              value={limit}
-              onChange={(e) => { setLimit(Number(e.target.value)); setCurrentPage(1); }}
-              wrapperClassName="w-24"
-            >
-              <option value="10">10</option>
-              <option value="20">20</option>
-              <option value="50">50</option>
-              <option value="100">100</option>
-              <option value="99999">All</option>
-            </SelectField>
-            <span>of {totalItems.toLocaleString()} events</span>
-          </div>
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-zinc-400">
-              Page <span className="text-zinc-100">{currentPage}</span> of{' '}
-              <span className="text-zinc-100">{maxPage}</span>
-            </span>
-            <div className="flex items-center gap-1">
+        {/* Pagination */}
+        {!searchQuery && totalItems > 0 && (
+          <div className="flex items-center justify-between px-4 py-3 border-t border-white/5">
+            <div className="flex items-center gap-2 text-sm text-zinc-400">
+              <span>Rows per page:</span>
+              <SelectField
+                value={limit.toString()}
+                onChange={(e) => {
+                  setLimit(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="w-20"
+              >
+                <option value="10">10</option>
+                <option value="20">20</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+              </SelectField>
+              <span className="text-zinc-500">
+                Showing {((currentPage - 1) * limit) + 1} - {Math.min(currentPage * limit, totalItems)} of {totalItems}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
               <button
-                disabled={currentPage === 1}
                 onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                className="p-2 rounded-lg border border-white/[0.04] hover:bg-white/[0.03] disabled:opacity-40 text-zinc-300 disabled:cursor-not-allowed"
+                disabled={currentPage === 1}
+                className="p-2 rounded-lg bg-white/5 text-zinc-400 hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                <ChevronLeft size={16} />
+                <ChevronLeft size={18} />
               </button>
+              <span className="text-sm text-zinc-400">
+                Page {currentPage} of {maxPage}
+              </span>
               <button
-                disabled={currentPage === maxPage}
                 onClick={() => setCurrentPage((p) => Math.min(maxPage, p + 1))}
-                className="p-2 rounded-lg border border-white/[0.04] hover:bg-white/[0.03] disabled:opacity-40 text-zinc-300 disabled:cursor-not-allowed"
+                disabled={currentPage >= maxPage}
+                className="p-2 rounded-lg bg-white/5 text-zinc-400 hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                <ChevronRight size={16} />
+                <ChevronRight size={18} />
               </button>
             </div>
           </div>
-        </div>
-      </motion.div>
+        )}
+      </div>
     </div>
   );
 }

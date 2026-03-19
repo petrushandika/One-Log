@@ -42,6 +42,20 @@ func Migrate(db *gorm.DB) {
 		&domain.SourceConfigHistory{},
 		&domain.User{},
 		&domain.Incident{},
+		&domain.APMThreshold{},
+		&domain.Session{},
+		&domain.ActivityFeed{},
+		&domain.ComplianceExport{},
+		// Phase 4: Status Page
+		&domain.StatusPageConfig{},
+		&domain.StatusPageEmbed{},
+		// Phase 5: Error Deduplication
+		&domain.ErrorEmbedding{},
+		&domain.ErrorCluster{},
+		&domain.ClusterMember{},
+		// Phase 6: Config Audit
+		&domain.ConfigAuditTrail{},
+		&domain.ConfigWebhook{},
 	)
 	if err != nil {
 		log.Fatalf("Migration failed %v", err)
