@@ -84,3 +84,17 @@ type User struct {
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 }
+
+// Incident represents a downtime event for a source
+// Phase 4: Incident Management
+type Incident struct {
+	ID          uint       `gorm:"primaryKey" json:"id"`
+	SourceID    string     `gorm:"type:uuid;not null;index" json:"source_id"`
+	Status      string     `gorm:"type:varchar(20);default:'OPEN';index" json:"status"` // OPEN, RESOLVED
+	StartedAt   time.Time  `gorm:"not null;index" json:"started_at"`
+	ResolvedAt  *time.Time `json:"resolved_at,omitempty"`
+	DurationSec int64      `json:"duration_sec"`
+	Message     string     `gorm:"type:text" json:"message"`
+	CreatedAt   time.Time  `json:"created_at"`
+	UpdatedAt   time.Time  `json:"updated_at"`
+}

@@ -20,7 +20,7 @@ api.interceptors.request.use(
   (error) => Promise.reject(error),
 );
 
-// Response: auto-logout on 401
+// Response: auto-logout on 401 and handle errors
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -28,6 +28,13 @@ api.interceptors.response.use(
       localStorage.removeItem('token');
       window.location.href = '/login';
     }
+    
+    // Handle rate limiting (429)
+    if (error.response?.status === 429) {
+      const retryAfter = error.response.headers['retry-after'] || 60;
+      console.error(`Rate limit exceeded. Retry after ${retryAfter} seconds.`);
+    }
+    
     return Promise.reject(error);
   },
 );
@@ -96,6 +103,8 @@ export const activityApi = {
 export const apmApi = {
   endpointStats: (params: { source_id?: string; period?: string } = {}) =>
     api.get('/apm/endpoints', { params }),
+  timeline: (params: { source_id?: string; endpoint?: string; period?: string; interval?: string } = {}) =>
+    api.get('/apm/timeline', { params }),
 };
 
 // ─── Issues ──────────────────────────────────────────────────────────────────
@@ -111,6 +120,10 @@ export const issuesApi = {
     api.patch(`/issues/${fingerprint}`, { status }),
   logs: (fingerprint: string, params: { page?: number; limit?: number } = {}) =>
     api.get(`/issues/${fingerprint}/logs`, { params }),
+  trend: (params: { source_id?: string; days?: number } = {}) =>
+    api.get('/issues/analytics/trend', { params }),
+  heatmap: (params: { source_id?: string; days?: number } = {}) =>
+    api.get('/issues/analytics/heatmap', { params }),
 };
 
 // ─── Status (public) ─────────────────────────────────────────────────────────
@@ -126,6 +139,14 @@ export const configApi = {
     api.post(`/sources/${sourceId}/configs`, data),
   history: (sourceId: string, params: { environment?: string } = {}) =>
     api.get(`/sources/${sourceId}/configs/history`, { params }),
+};
+
+// ─── Incidents ───────────────────────────────────────────────────────────────
+export const incidentsApi = {
+  list: (params: { status?: string; source_id?: string; page?: number; limit?: number } = {}) =>
+    api.get('/incidents', { params }),
+  timeline: (params: { source_id?: string; days?: number } = {}) =>
+    api.get('/incidents/timeline', { params }),
 };
 
 // ─── Chat (AI Copilot) ───────────────────────────────────────────────────────

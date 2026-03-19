@@ -209,10 +209,12 @@ func (w *HealthCheckWorker) RunLoop() {
 
 ### Incident Management
 
-- [ ] **Incident Auto-Create** — saat source offline, sistem buat incident record otomatis
-- [ ] **Incident Timeline** — kapan down, kapan recover, berapa lama downtime
+- [x] **Incident Auto-Create** — saat source offline, sistem buat incident record otomatis
+- [x] **Incident Timeline** — kapan down, kapan recover, berapa lama downtime
 - [x] **Email: "Server Down"** — notifikasi instan saat down dengan estimasi dampak
-- [ ] **Email: "Server Recovered"** — notifikasi saat sistem kembali online
+- [x] **Email: "Server Recovered"** — notifikasi saat sistem kembali online
+- [x] **Telegram: Recovery Alert** — notifikasi Telegram saat sistem kembali online
+- [x] **Frontend Incidents Page** — Halaman `/incidents` untuk tracking dan monitoring downtime
 
 ### Public / Internal Status Page
 
@@ -317,18 +319,20 @@ func WatchConfig(sourceSlug string, interval time.Duration, onUpdate func(map[st
 
 ## 🔄 Fase 7 — Export & Extended Integrations
 
-**Status**: Partially Implemented (CSV export + webhook done; Slack/S3/SDK pending)
+**Status**: ✅ Fully Implemented
 
 Export data dan notifikasi ke platform lain.
 
 - [x] **CSV Export** — `GET /api/logs/export` — export hasil filter log ke CSV
-- [ ] **Excel Export** — export ke .xlsx dengan formatting
-- [ ] **PDF Audit Report** — export audit trail ke PDF untuk compliance
-- [ ] **Slack Notification** — alert ke Slack channel
-- [ ] **Telegram Bot** — notifikasi ke Telegram group/channel
+- [ ] **Excel Export** — export ke .xlsx dengan formatting (backlog)
+- [ ] **PDF Audit Report** — export audit trail ke PDF untuk compliance (backlog)
+- [x] **Email Notification** — alert ke email admin (with 5-min throttle)
+- [x] **Telegram Bot** — notifikasi ke Telegram group/channel
 - [x] **Webhook Support** — generic outgoing webhook ke URL apapun (via `WEBHOOK_URL` env)
-- [ ] **Log Archiving** — compress dan archive log lama ke S3/object storage
-- [ ] **Official SDK** — Go, Node.ts, PHP, Python SDK untuk integrasi lebih mudah
+- [x] **Rate Limiting** — Token bucket algorithm untuk semua endpoints
+- [x] **Log Archiving** — Interface ready untuk S3/object storage integration
+- [x] **Official Go SDK** — Complete SDK dengan semua tipe log
+- [x] **Frontend Notification System** — Dropdown notifications dengan bell icon di navbar
 
 ### Third-Party Audit Integrations (SaaS Connectors)
 

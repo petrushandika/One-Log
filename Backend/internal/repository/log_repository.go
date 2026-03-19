@@ -31,6 +31,11 @@ type LogRepository interface {
 	GetIssueByFingerprint(fingerprint string, ownerUserID uint) (*domain.Issue, error)
 	UpdateIssueStatus(fingerprint string, status string, ownerUserID uint) (*domain.Issue, error)
 	ListIssueLogs(limit int, offset int, fingerprint string, ownerUserID uint) ([]domain.LogEntry, int64, error)
+
+	// Phase 3: APM Timeline and Trend APIs
+	GetResponseTimeTimeline(period time.Duration, interval time.Duration, sourceID string, endpoint string, ownerUserID uint) ([]map[string]interface{}, error)
+	GetErrorRateTrend(days int, sourceID string, ownerUserID uint) ([]map[string]interface{}, error)
+	GetErrorHeatmap(days int, sourceID string, ownerUserID uint) ([]map[string]interface{}, error)
 }
 
 // Struct private for implementation
@@ -534,4 +539,173 @@ func (r *logRepository) ListIssueLogs(limit int, offset int, fingerprint string,
 		return nil, 0, err
 	}
 	return logs, total, nil
+}
+
+// GetResponseTimeTimeline returns time-series data of response times for APM charts
+func (r *logRepository) GetResponseTimeTimeline(period time.Duration, interval time.Duration, sourceID string, endpoint string, ownerUserID uint) ([]map[string]interface{}, error) {
+	since := time.Now().Add(-period)
+
+	sql := `
+SELECT 
+    date_trunc('hour', log_entries.created_at) as time_bucket,
+    count(*) as request_count,
+    avg((log_entries.context->>'duration_ms')::float) as avg_duration,
+    percentile_cont(0.5) within group (order by (log_entries.context->>'duration_ms')::float) as p50,
+    percentile_cont(0.95) within group (order by (log_entries.context->>'duration_ms')::float) as p95,
+    percentile_cont(0.99) within group (order by (log_entries.context->>'duration_ms')::float) as p99
+FROM log_entries
+`
+	args := []interface{}{}
+
+	joins := ""
+	where := "WHERE log_entries.category = 'PERFORMANCE' AND log_entries.created_at >= ? AND jsonb_exists(log_entries.context, 'duration_ms')"
+	args = append(args, since)
+
+	if ownerUserID > 0 {
+		joins += " JOIN sources ON sources.id = log_entries.source_id "
+		where += " AND sources.user_id = ?"
+		args = append(args, ownerUserID)
+	}
+	if sourceID != "" {
+		where += " AND log_entries.source_id = ?"
+		args = append(args, sourceID)
+	}
+	if endpoint != "" {
+		where += " AND log_entries.context->>'endpoint' = ?"
+		args = append(args, endpoint)
+	}
+
+	groupOrder := " GROUP BY time_bucket ORDER BY time_bucket ASC"
+	finalSQL := sql + joins + "\n" + where + "\n" + groupOrder
+
+	rows, err := r.db.Raw(finalSQL, args...).Rows()
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	out := []map[string]interface{}{}
+	for rows.Next() {
+		var timeBucket time.Time
+		var count int64
+		var avgDuration, p50, p95, p99 float64
+		if err := rows.Scan(&timeBucket, &count, &avgDuration, &p50, &p95, &p99); err != nil {
+			return nil, err
+		}
+		out = append(out, map[string]interface{}{
+			"timestamp":     timeBucket,
+			"request_count": count,
+			"avg_duration":  avgDuration,
+			"p50":           p50,
+			"p95":           p95,
+			"p99":           p99,
+		})
+	}
+	return out, nil
+}
+
+// GetErrorRateTrend returns daily error rate percentage for the last N days
+func (r *logRepository) GetErrorRateTrend(days int, sourceID string, ownerUserID uint) ([]map[string]interface{}, error) {
+	sql := `
+SELECT 
+    DATE(log_entries.created_at) as date,
+    count(*) as total_logs,
+    count(*) filter (where log_entries.level in ('ERROR', 'CRITICAL')) as error_count,
+    round(
+        count(*) filter (where log_entries.level in ('ERROR', 'CRITICAL')) * 100.0 / nullif(count(*), 0),
+        2
+    ) as error_rate
+FROM log_entries
+`
+	args := []interface{}{}
+
+	joins := ""
+	where := "WHERE log_entries.created_at >= NOW() - INTERVAL '1 day' * ?"
+	args = append(args, days)
+
+	if ownerUserID > 0 {
+		joins += " JOIN sources ON sources.id = log_entries.source_id "
+		where += " AND sources.user_id = ?"
+		args = append(args, ownerUserID)
+	}
+	if sourceID != "" {
+		where += " AND log_entries.source_id = ?"
+		args = append(args, sourceID)
+	}
+
+	groupOrder := " GROUP BY DATE(log_entries.created_at) ORDER BY date ASC"
+	finalSQL := sql + joins + "\n" + where + "\n" + groupOrder
+
+	rows, err := r.db.Raw(finalSQL, args...).Rows()
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	out := []map[string]interface{}{}
+	for rows.Next() {
+		var date time.Time
+		var totalLogs, errorCount int64
+		var errorRate float64
+		if err := rows.Scan(&date, &totalLogs, &errorCount, &errorRate); err != nil {
+			return nil, err
+		}
+		out = append(out, map[string]interface{}{
+			"date":        date.Format("2006-01-02"),
+			"total_logs":  totalLogs,
+			"error_count": errorCount,
+			"error_rate":  errorRate,
+		})
+	}
+	return out, nil
+}
+
+// GetErrorHeatmap returns error frequency by hour of day and day of week
+func (r *logRepository) GetErrorHeatmap(days int, sourceID string, ownerUserID uint) ([]map[string]interface{}, error) {
+	sql := `
+SELECT 
+    extract(dow from log_entries.created_at) as day_of_week,
+    extract(hour from log_entries.created_at) as hour_of_day,
+    count(*) as error_count
+FROM log_entries
+`
+	args := []interface{}{}
+
+	joins := ""
+	where := "WHERE log_entries.level in ('ERROR', 'CRITICAL') AND log_entries.created_at >= NOW() - INTERVAL '1 day' * ?"
+	args = append(args, days)
+
+	if ownerUserID > 0 {
+		joins += " JOIN sources ON sources.id = log_entries.source_id "
+		where += " AND sources.user_id = ?"
+		args = append(args, ownerUserID)
+	}
+	if sourceID != "" {
+		where += " AND log_entries.source_id = ?"
+		args = append(args, sourceID)
+	}
+
+	groupOrder := " GROUP BY day_of_week, hour_of_day ORDER BY day_of_week, hour_of_day"
+	finalSQL := sql + joins + "\n" + where + "\n" + groupOrder
+
+	rows, err := r.db.Raw(finalSQL, args...).Rows()
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	out := []map[string]interface{}{}
+	for rows.Next() {
+		var dayOfWeek, hourOfDay int64
+		var errorCount int64
+		if err := rows.Scan(&dayOfWeek, &hourOfDay, &errorCount); err != nil {
+			return nil, err
+		}
+		out = append(out, map[string]interface{}{
+			"day_of_week": dayOfWeek,
+			"hour_of_day": hourOfDay,
+			"error_count": errorCount,
+		})
+	}
+	return out, nil
 }

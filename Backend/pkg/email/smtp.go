@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/smtp"
 	"os"
+	"time"
 
 	"github.com/petrushandika/one-log/internal/domain"
 )
@@ -38,8 +39,6 @@ func (s *SMTPEmailService) SendAlertEmail(to string, logEntry *domain.LogEntry) 
 		log.Println("WARNING: SMTP credentials not fully configured. Email skipped.")
 		return nil
 	}
-
-	auth := smtp.PlainAuth("", s.Username, s.Password, s.Host)
 
 	// Prepare Subject
 	subject := fmt.Sprintf("Alert: [%s] %s on %s", logEntry.Level, logEntry.Category, logEntry.SourceID)
@@ -81,6 +80,64 @@ func (s *SMTPEmailService) SendAlertEmail(to string, logEntry *domain.LogEntry) 
 		return err
 	}
 
+	return s.sendEmail(to, body.Bytes())
+}
+
+// SendRecoveryEmail sends an HTML email when a source comes back online
+func (s *SMTPEmailService) SendRecoveryEmail(to string, sourceName string, downtimeDuration string) error {
+	if s.Host == "" || s.Username == "" || s.Password == "" {
+		log.Println("WARNING: SMTP credentials not fully configured. Recovery email skipped.")
+		return nil
+	}
+
+	subject := fmt.Sprintf("✅ Recovered: %s is back online", sourceName)
+
+	tmpl := `
+<!DOCTYPE html>
+<html>
+<body>
+	<h2 style="color: #5cb85c;">✅ Server Recovered: {{.SourceName}}</h2>
+	<p>Good news! The server has recovered and is back online.</p>
+	<p><strong>Downtime Duration:</strong> {{.Downtime}}</p>
+	<p><strong>Recovered At:</strong> {{.RecoveredAt}}</p>
+	<hr/>
+	<p><a href="https://ulam.your-domain.com/status">View Status Page</a></p>
+</body>
+</html>
+`
+	t, err := template.New("recovery").Parse(tmpl)
+	if err != nil {
+		return err
+	}
+
+	data := struct {
+		SourceName  string
+		Downtime    string
+		RecoveredAt string
+	}{
+		SourceName:  sourceName,
+		Downtime:    downtimeDuration,
+		RecoveredAt: time.Now().Format(time.RFC3339),
+	}
+
+	var body bytes.Buffer
+	body.Write([]byte(fmt.Sprintf("To: %s\r\n", to)))
+	body.Write([]byte(fmt.Sprintf("From: %s\r\n", s.From)))
+	body.Write([]byte(fmt.Sprintf("Subject: %s\r\n", subject)))
+	body.Write([]byte("MIME-Version: 1.0\r\n"))
+	body.Write([]byte("Content-Type: text/html; charset=\"UTF-8\"\r\n\r\n"))
+
+	if err = t.Execute(&body, data); err != nil {
+		return err
+	}
+
+	return s.sendEmail(to, body.Bytes())
+}
+
+// sendEmail is a helper to send raw email bytes via SMTP
+func (s *SMTPEmailService) sendEmail(to string, body []byte) error {
+	auth := smtp.PlainAuth("", s.Username, s.Password, s.Host)
+
 	tlsConfig := &tls.Config{
 		InsecureSkipVerify: true,
 		ServerName:         s.Host,
@@ -90,6 +147,7 @@ func (s *SMTPEmailService) SendAlertEmail(to string, logEntry *domain.LogEntry) 
 	if err != nil {
 		return fmt.Errorf("failed to dial SMTP server: %v", err)
 	}
+	defer conn.Close()
 
 	client, err := smtp.NewClient(conn, s.Host)
 	if err != nil {
@@ -114,7 +172,7 @@ func (s *SMTPEmailService) SendAlertEmail(to string, logEntry *domain.LogEntry) 
 		return fmt.Errorf("failed to issue DATA command: %v", err)
 	}
 
-	_, err = w.Write(body.Bytes())
+	_, err = w.Write(body)
 	if err != nil {
 		return fmt.Errorf("failed to write email body: %v", err)
 	}

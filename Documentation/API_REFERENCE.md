@@ -10,18 +10,23 @@
 ## URL Conventions
 
 ```text
-/api/ingest              → Log ingestion (for client apps)
-/api/auth/...            → Authentication
-/api/logs/...            → Log management (dashboard)
-/api/logs/export         → CSV export
-/api/sources/...         → Source management
-/api/stats/...           → Aggregated statistics
-/api/activity/...        → Activity & audit trail (Phase 2)
-/api/apm/...             → APM — endpoint latency (Phase 3)
-/api/issues/...          → Error grouping & issues (Phase 5)
-/api/config/...          → Centralized config management (Phase 6)
-/api/status              → Public status page (no auth, Phase 4)
-/api/chat                → AI Copilot chatbot (Phase 5, JWT required)
+/api/ingest                     → Log ingestion (for client apps)
+/api/auth/...                   → Authentication
+/api/logs/...                   → Log management (dashboard)
+/api/logs/export                → CSV export
+/api/sources/...                → Source management
+/api/stats/...                  → Aggregated statistics
+/api/activity/...               → Activity & audit trail (Phase 2)
+/api/apm/...                    → APM — endpoint latency (Phase 3)
+/api/apm/timeline               → Response time timeline (Phase 3)
+/api/issues/...                 → Error grouping & issues (Phase 5)
+/api/issues/analytics/trend     → Error rate trend (Phase 5)
+/api/issues/analytics/heatmap   → Error heatmap (Phase 5)
+/api/incidents/...              → Incident management (Phase 4)
+/api/incidents/timeline         → Incident timeline (Phase 4)
+/api/config/...                 → Centralized config management (Phase 6)
+/api/status                     → Public status page (no auth, Phase 4)
+/api/chat                       → AI Copilot chatbot (Phase 5, JWT required)
 ```
 
 > Note: `/sources` digunakan untuk merepresentasikan "source terdaftar yang mengirim log ke ULAM".
@@ -894,6 +899,39 @@ Statistik spesifik untuk satu aplikasi.
 }
 ```
 
+### `GET /api/apm/timeline`
+
+Time-series response time data for APM charts.
+
+**Auth**: JWT
+
+**Query Parameters:**
+
+| Param       | Default | Description                          |
+| ----------- | ------- | ------------------------------------ |
+| `source_id` | —       | Filter by source UUID                |
+| `endpoint`  | —       | Filter by specific endpoint path     |
+| `period`    | `24h`   | `24h`, `7d`, `30d`                   |
+| `interval`  | `1h`    | Time bucket interval: `1h`, `1d`     |
+
+**Response `200 OK`:**
+
+```json
+{
+  "status": "success",
+  "data": [
+    {
+      "timestamp": "2026-03-19T10:00:00Z",
+      "request_count": 150,
+      "avg_duration": 45.2,
+      "p50": 30,
+      "p95": 120,
+      "p99": 250
+    }
+  ]
+}
+```
+
 ---
 
 ## 8. Issues — Error Grouping
@@ -953,9 +991,140 @@ Statistik spesifik untuk satu aplikasi.
 
 **Auth**: JWT — Individual log entries belonging to this issue (paginated).
 
+### `GET /api/issues/analytics/trend`
+
+Daily error rate trend for the last N days.
+
+**Auth**: JWT
+
+**Query Parameters:**
+
+| Param       | Default | Description          |
+| ----------- | ------- | -------------------- |
+| `source_id` | —       | Filter by source     |
+| `days`      | `30`    | Number of days (1-90)|
+
+**Response `200 OK`:**
+
+```json
+{
+  "status": "success",
+  "data": [
+    {
+      "date": "2026-03-18",
+      "total_logs": 5000,
+      "error_count": 25,
+      "error_rate": 0.5
+    }
+  ]
+}
+```
+
+### `GET /api/issues/analytics/heatmap`
+
+Error frequency heatmap by hour of day and day of week.
+
+**Auth**: JWT
+
+**Query Parameters:**
+
+| Param       | Default | Description          |
+| ----------- | ------- | -------------------- |
+| `source_id` | —       | Filter by source     |
+| `days`      | `30`    | Number of days (1-90)|
+
+**Response `200 OK`:**
+
+```json
+{
+  "status": "success",
+  "data": [
+    {
+      "day_of_week": 1,
+      "hour_of_day": 14,
+      "error_count": 45
+    }
+  ]
+}
+```
+
 ---
 
-## 9. Config Management
+## 9. Incidents — Downtime Tracking
+
+Incident management for tracking source downtime and uptime.
+
+### `GET /api/incidents`
+
+List all incidents with pagination.
+
+**Auth**: JWT
+
+**Query Parameters:**
+
+| Param       | Default | Options                |
+| ----------- | ------- | ---------------------- |
+| `status`    | —       | `OPEN`, `RESOLVED`     |
+| `source_id` | —       | Filter by source       |
+| `page`      | `1`     | Page number            |
+| `limit`     | `20`    | Items per page         |
+
+**Response `200 OK`:**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "items": [
+      {
+        "id": 1,
+        "source_id": "uuid",
+        "status": "RESOLVED",
+        "started_at": "2026-03-19T08:00:00Z",
+        "resolved_at": "2026-03-19T08:15:00Z",
+        "duration_sec": 900,
+        "message": "Source 'Payment Gateway' is DOWN. Health check failed."
+      }
+    ],
+    "meta": { "total": 5, "page": 1, "limit": 20 }
+  }
+}
+```
+
+### `GET /api/incidents/timeline`
+
+Daily incident statistics for uptime reporting.
+
+**Auth**: JWT
+
+**Query Parameters:**
+
+| Param       | Default | Description           |
+| ----------- | ------- | --------------------- |
+| `source_id` | —       | Filter by source      |
+| `days`      | `30`    | Number of days (1-90) |
+
+**Response `200 OK`:**
+
+```json
+{
+  "status": "success",
+  "data": [
+    {
+      "date": "2026-03-18",
+      "open_count": 1,
+      "resolved_count": 2,
+      "total_downtime_sec": 1800
+    }
+  ]
+}
+```
+
+> **Note**: Incidents are automatically created when a source goes OFFLINE and resolved when it comes back ONLINE. Recovery emails are sent automatically.
+
+---
+
+## 10. Config Management
 
 ### `GET /api/config/:source_slug`
 
@@ -977,7 +1146,7 @@ Statistik spesifik untuk satu aplikasi.
 
 ---
 
-## 10. Logs — CSV Export
+## 11. Logs — CSV Export
 
 ### `GET /api/logs/export`
 
@@ -988,7 +1157,7 @@ Statistik spesifik untuk satu aplikasi.
 
 ---
 
-## 11. Public Status Page
+## 12. Public Status Page
 
 ### `GET /api/status`
 
@@ -1046,7 +1215,7 @@ Semua error menggunakan format konsisten:
 
 ---
 
-## AI Copilot — Chat
+## 13. AI Copilot — Chat
 
 ### POST /api/chat
 
@@ -1086,10 +1255,34 @@ Responses are formatted in Markdown and rendered in the chat widget.
 
 ## Rate Limits Summary
 
-| Endpoint                             | Limit   | Window                 |
-| ------------------------------------ | ------- | ---------------------- |
-| `POST /api/ingest`                   | 100 req | Per menit, per API key |
-| `GET /api/logs`                      | 60 req  | Per menit, per JWT     |
-| `GET /api/stats/*`                   | 30 req  | Per menit, per JWT     |
-| `POST /api/auth/login`               | 10 req  | Per menit, per IP      |
-| `POST /api/sources/:slug/rotate-key` | 5 req   | Per jam, per JWT       |
+| Endpoint                             | Limit   | Window                 | Status         | Algorithm       |
+| ------------------------------------ | ------- | ---------------------- | -------------- | --------------- |
+| `POST /api/ingest`                   | 100 req | Per menit, per API key | ✅ Implemented | Token Bucket    |
+| `GET /api/logs`                      | 60 req  | Per menit, per JWT     | ✅ Implemented | Token Bucket    |
+| `GET /api/stats/*`                   | 60 req  | Per menit, per JWT     | ✅ Implemented | Token Bucket    |
+| `POST /api/auth/login`               | 10 req  | Per menit, per IP      | ✅ Implemented | Token Bucket    |
+| `POST /api/sources/:slug/rotate-key` | 5 req   | Per jam, per JWT       | ✅ Implemented | Token Bucket    |
+| Email Notifications                  | 1 email | Per 5 menit, per error | ✅ Implemented | Time-based      |
+
+**Rate Limit Response (429 Too Many Requests):**
+
+```json
+{
+  "status": "error",
+  "code": 429,
+  "message": "Rate limit exceeded. Please try again later.",
+  "errors": {
+    "retry_after_seconds": 30,
+    "limit": 100,
+    "window": "1m0s"
+  }
+}
+```
+
+**Headers:**
+- `Retry-After`: Seconds to wait before retry
+- `X-RateLimit-Limit`: Request limit
+- `X-RateLimit-Window`: Time window
+
+> **Algorithm**: Token Bucket - Smooth rate limiting with burst capability
+

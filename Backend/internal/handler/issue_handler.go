@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/petrushandika/one-log/internal/service"
@@ -86,4 +87,42 @@ func (h *IssueHandler) Logs(c *gin.Context) {
 		"items": items,
 		"meta":  meta,
 	})
+}
+
+// GET /api/v1/issues/analytics/trend
+func (h *IssueHandler) ErrorRateTrend(c *gin.Context) {
+	daysStr := c.DefaultQuery("days", "30")
+	sourceID := c.Query("source_id")
+	ownerUserID := c.GetUint("user_id")
+
+	days, _ := strconv.Atoi(daysStr)
+	if days <= 0 {
+		days = 30
+	}
+
+	data, err := h.service.ErrorRateTrend(days, sourceID, ownerUserID)
+	if err != nil {
+		utils.Error(c, http.StatusInternalServerError, "Failed to get error rate trend", err.Error())
+		return
+	}
+	utils.Success(c, http.StatusOK, "Error rate trend retrieved", data)
+}
+
+// GET /api/v1/issues/analytics/heatmap
+func (h *IssueHandler) ErrorHeatmap(c *gin.Context) {
+	daysStr := c.DefaultQuery("days", "30")
+	sourceID := c.Query("source_id")
+	ownerUserID := c.GetUint("user_id")
+
+	days, _ := strconv.Atoi(daysStr)
+	if days <= 0 {
+		days = 30
+	}
+
+	data, err := h.service.ErrorHeatmap(days, sourceID, ownerUserID)
+	if err != nil {
+		utils.Error(c, http.StatusInternalServerError, "Failed to get error heatmap", err.Error())
+		return
+	}
+	utils.Success(c, http.StatusOK, "Error heatmap retrieved", data)
 }

@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { Link, useLocation, Outlet, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutGrid, FileText, ShieldAlert, LogOut, Terminal, Menu, X, BugPlay, Activity, Radio, Server, SlidersHorizontal } from 'lucide-react';
+import { LayoutGrid, FileText, ShieldAlert, LogOut, Terminal, Menu, X, BugPlay, Activity, Radio, Server, SlidersHorizontal, AlertTriangle } from 'lucide-react';
 import ChatWidget from './ChatWidget';
+import { NotificationProvider } from '../contexts/NotificationContext';
+import NotificationDropdown from './NotificationDropdown';
 
 export default function Layout() {
   const location = useLocation();
@@ -33,6 +35,12 @@ export default function Layout() {
       ],
     },
     {
+      label: 'Reliability',
+      items: [
+        { title: 'Incidents', icon: AlertTriangle, path: '/incidents' },
+      ],
+    },
+    {
       label: 'Compliance',
       items: [
         { title: 'Audit Trail', icon: ShieldAlert, path: '/audit' },
@@ -47,25 +55,31 @@ export default function Layout() {
     '/status': 'Status',
     '/sources': 'Sources',
     '/config': 'Config',
+    '/incidents': 'Incidents',
     '/audit': 'Audit Trail',
   };
 
   return (
-    <div className="flex bg-[#09090b] min-h-screen">
-      {/* Sidebar - Desktop */}
-      <aside className="hidden lg:flex fixed inset-y-0 left-0 w-64 border-r border-white/5 bg-[#0c0c0e]/80 backdrop-blur-md p-6 flex-col justify-between z-30">
-        <div>
-          <div className="flex items-center gap-2 mb-10">
+    <NotificationProvider>
+      <div className="flex bg-[#09090b] min-h-screen">
+        {/* Sidebar - Desktop */}
+      <aside className="hidden lg:flex fixed inset-y-0 left-0 w-64 border-r border-white/5 bg-[#0c0c0e]/80 backdrop-blur-md z-30 flex flex-col">
+        {/* Header - Fixed */}
+        <div className="p-6 pb-4 shrink-0">
+          <div className="flex items-center gap-2">
             <div className="p-2 rounded-xl bg-purple-500/20 text-purple-400">
               <Terminal size={24} />
             </div>
             <h1 className="text-xl font-bold tracking-tight text-white">One Log</h1>
           </div>
+        </div>
 
-          <nav className="space-y-0">
+        {/* Navigation - Scrollable */}
+        <nav className="flex-1 overflow-y-auto px-6 pb-4 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+          <div className="space-y-0">
             {menuSections.map((section) => (
               <div key={section.label}>
-                <p className="px-4 pt-5 pb-1.5 text-[10px] font-semibold uppercase tracking-widest text-zinc-600">
+                <p className="px-4 pt-4 pb-1.5 text-[10px] font-semibold uppercase tracking-widest text-zinc-600">
                   {section.label}
                 </p>
                 <div className="space-y-0.5">
@@ -89,11 +103,12 @@ export default function Layout() {
                 </div>
               </div>
             ))}
-          </nav>
-        </div>
+          </div>
+        </nav>
 
-        <div>
-          <div className="flex items-center gap-3 p-3 mb-4 rounded-xl bg-white/2 border border-white/5">
+        {/* Profile & Logout - Fixed at bottom */}
+        <div className="p-6 pt-4 border-t border-white/5 shrink-0 bg-[#0c0c0e]/80 backdrop-blur-md">
+          <div className="flex items-center gap-3 p-3 mb-3 rounded-xl bg-white/2 border border-white/5">
             <img src="https://avatar.vercel.sh/admin" alt="Admin" className="w-9 h-9 rounded-lg" />
             <div>
               <p className="text-sm font-semibold text-zinc-100">Administrator</p>
@@ -126,10 +141,11 @@ export default function Layout() {
               animate={{ x: 0 }}
               exit={{ x: -250 }}
               transition={{ ease: 'easeInOut', duration: 0.3 }}
-              className="fixed inset-y-0 left-0 w-64 border-r border-white/5 bg-[#0c0c0e] p-6 flex flex-col justify-between z-50 lg:hidden"
+              className="fixed inset-y-0 left-0 w-64 border-r border-white/5 bg-[#0c0c0e] z-50 lg:hidden flex flex-col"
             >
-              <div>
-                <div className="flex items-center justify-between mb-10">
+              {/* Header - Fixed */}
+              <div className="p-6 pb-4 shrink-0">
+                <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div className="p-2 rounded-xl bg-purple-500/20 text-purple-400">
                       <Terminal size={22} />
@@ -140,11 +156,14 @@ export default function Layout() {
                     <X size={20} />
                   </button>
                 </div>
+              </div>
 
-                <nav className="space-y-0">
+              {/* Navigation - Scrollable */}
+              <nav className="flex-1 overflow-y-auto px-6 pb-4 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+                <div className="space-y-0">
                   {menuSections.map((section) => (
                     <div key={section.label}>
-                      <p className="px-4 pt-5 pb-1.5 text-[10px] font-semibold uppercase tracking-widest text-zinc-600">
+                      <p className="px-4 pt-4 pb-1.5 text-[10px] font-semibold uppercase tracking-widest text-zinc-600">
                         {section.label}
                       </p>
                       <div className="space-y-0.5">
@@ -169,10 +188,11 @@ export default function Layout() {
                       </div>
                     </div>
                   ))}
-                </nav>
-              </div>
+                </div>
+              </nav>
 
-              <div>
+              {/* Logout Button - Fixed at bottom */}
+              <div className="p-6 pt-4 border-t border-white/5 shrink-0">
                 <button 
                   onClick={handleLogout}
                   className="flex items-center justify-center w-full gap-2 px-4 py-3 text-sm font-semibold transition-all duration-200 border rounded-xl bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white border-red-500/20 shadow-lg shadow-red-500/5"
@@ -206,7 +226,8 @@ export default function Layout() {
               )}
             </div>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            <NotificationDropdown />
             <span className="px-3 py-1 text-xs font-semibold rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
               Live
             </span>
@@ -222,5 +243,6 @@ export default function Layout() {
       {/* AI Chat — rendered outside scroll containers so it always sits fixed bottom-right */}
       <ChatWidget />
     </div>
+    </NotificationProvider>
   );
 }
