@@ -106,6 +106,16 @@ export const activityApi = {
     api.get('/activity/analytics/heatmap', { params }),
   getSessions: (params: { page?: number; limit?: number } = {}) =>
     api.get('/activity/sessions', { params }),
+  // Activity Feed (Phase 2 Extended)
+  getFeed: (params: { page?: number; limit?: number; action?: string } = {}) =>
+    api.get('/activity/feed', { params }),
+  getTopUsers: (params: { days?: number; limit?: number } = {}) =>
+    api.get('/activity/top-users', { params }),
+  // Compliance Export (Phase 2 Extended)
+  requestComplianceExport: (data: { source_id: string; format: string; date_from: string; date_to: string }) =>
+    api.post('/activity/compliance-export', data),
+  getComplianceExports: (params: { page?: number; limit?: number } = {}) =>
+    api.get('/activity/compliance-exports', { params }),
 };
 
 // ─── APM ─────────────────────────────────────────────────────────────────────
