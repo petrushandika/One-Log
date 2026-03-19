@@ -148,7 +148,7 @@ export default function ActivityAnalytics() {
           ].map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
+              onClick={() => setActiveTab(tab.id as 'methods' | 'timeline' | 'heatmap' | 'sessions')}
               className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-all ${
                 activeTab === tab.id
                   ? 'bg-purple-500/20 text-purple-400 border-r border-purple-500/20'
