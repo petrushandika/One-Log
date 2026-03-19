@@ -41,6 +41,7 @@ func Migrate(db *gorm.DB) {
 		&domain.SourceConfig{},
 		&domain.SourceConfigHistory{},
 		&domain.User{},
+		&domain.Incident{},
 	)
 	if err != nil {
 		log.Fatalf("Migration failed %v", err)

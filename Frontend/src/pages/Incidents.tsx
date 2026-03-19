@@ -21,7 +21,7 @@ export default function Incidents() {
   const [statusFilter, setStatusFilter] = useState('');
 
   // Fetch incidents
-  const { data: incidentsData, isLoading } = useQuery({
+  const { data: incidentsData, isLoading, error } = useQuery({
     queryKey: ['incidents', page, limit, statusFilter],
     queryFn: async () => {
       const { data } = await incidentsApi.list({
@@ -118,7 +118,29 @@ export default function Incidents() {
           <tbody>
             {isLoading ? (
               <tr>
-                <td colSpan={4} className="text-center py-8 text-zinc-500">Loading incidents...</td>
+                <td colSpan={4} className="text-center py-8 text-zinc-500">
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="w-6 h-6 border-2 border-zinc-600 border-t-purple-500 rounded-full animate-spin" />
+                    <p>Loading incidents...</p>
+                  </div>
+                </td>
+              </tr>
+            ) : error ? (
+              <tr>
+                <td colSpan={4} className="text-center py-8">
+                  <div className="flex flex-col items-center gap-2">
+                    <AlertTriangle size={32} className="text-red-500" />
+                    <p className="text-red-400">Failed to load incidents</p>
+                    <p className="text-zinc-500 text-sm">{(error as Error)?.message || 'Unknown error'}</p>
+                    <p className="text-zinc-600 text-xs mt-2">Make sure the backend server is running</p>
+                    <button 
+                      onClick={() => window.location.reload()}
+                      className="mt-2 px-4 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-sm text-zinc-300"
+                    >
+                      Retry
+                    </button>
+                  </div>
+                </td>
               </tr>
             ) : incidents.length === 0 ? (
               <tr>
