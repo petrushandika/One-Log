@@ -78,16 +78,24 @@ export default function Issues() {
   } = useQuery<{ items: Issue[]; total: number }>({
     queryKey: ['issues', currentPage, limit, statusFilter],
     queryFn: async () => {
-      const { data } = await issuesApi.list({
-        status: statusFilter || undefined,
-        page: currentPage,
-        limit,
-      });
-      return {
-        items: (data.data?.items ?? []) as Issue[],
-        total: data.data?.meta?.total ?? 0,
-      };
+      try {
+        const { data } = await issuesApi.list({
+          status: statusFilter || undefined,
+          page: currentPage,
+          limit,
+        });
+        return {
+          items: (data.data?.items ?? []) as Issue[],
+          total: data.data?.meta?.total ?? 0,
+        };
+      } catch (err: Error | unknown) {
+        console.error('Issues API Error:', err);
+        throw err;
+      }
     },
+    retry: 3,
+    retryDelay: 1000,
+    staleTime: 30000,
   });
 
   const issues = issuesData?.items ?? [];

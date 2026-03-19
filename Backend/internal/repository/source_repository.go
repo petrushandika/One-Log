@@ -13,6 +13,7 @@ type SourceRepository interface {
 	FindAll(userID uint) ([]domain.Source, error)
 	FindByID(id string, userID uint) (*domain.Source, error)
 	Update(source *domain.Source) error
+	Delete(id string, userID uint) error
 }
 
 type sourceRepository struct {
@@ -63,4 +64,8 @@ func (r *sourceRepository) FindByID(id string, userID uint) (*domain.Source, err
 
 func (r *sourceRepository) Update(source *domain.Source) error {
 	return r.db.Save(source).Error
+}
+
+func (r *sourceRepository) Delete(id string, userID uint) error {
+	return r.db.Where("id = ? AND user_id = ?", id, userID).Delete(&domain.Source{}).Error
 }

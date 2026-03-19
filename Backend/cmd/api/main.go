@@ -254,6 +254,7 @@ func main() {
 			admin.GET("/sources", sourceHandler.GetAll)
 			admin.GET("/sources/:id", sourceHandler.GetByID)
 			admin.PATCH("/sources/:id", sourceHandler.Update)
+			admin.DELETE("/sources/:id", sourceHandler.Delete)
 			admin.POST("/sources/:id/rotate-key", sourceHandler.RotateKey)
 
 			// AI Chat Copilot (Phase 5)

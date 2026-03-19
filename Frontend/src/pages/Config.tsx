@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { SlidersHorizontal, Eye, EyeOff, Edit3, X, History, ChevronRight, RotateCcw, Lock, Unlock, AlertCircle, RefreshCw, CheckCircle } from 'lucide-react';
@@ -57,17 +57,27 @@ export default function Config() {
   };
 
   // Fetch sources
-  const { data: sources = [], isLoading: isLoadingSources, error: sourcesError } = useQuery({
+  const { data: sourcesData, isLoading: isLoadingSources, error: sourcesError } = useQuery<Source[]>({
     queryKey: ['sources'],
     queryFn: async () => {
       const { data } = await sourcesApi.getAll();
-      const list: Source[] = data.data ?? [];
-      if (list.length > 0 && !selectedSource) {
-        setSelectedSource(list[0]);
-      }
-      return list;
+      return (data.data ?? []) as Source[];
     },
+    staleTime: 30000,
   });
+  const sources = sourcesData ?? [];
+
+  // Set default selected source when sources load
+  const hasSetDefault = useRef(false);
+  useEffect(() => {
+    if (!hasSetDefault.current && sources.length > 0 && !selectedSource) {
+      hasSetDefault.current = true;
+      queueMicrotask(() => {
+        setSelectedSource(sources[0]);
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sources]);
 
   // Fetch configs for selected source
   const { 
@@ -79,10 +89,22 @@ export default function Config() {
     queryKey: ['configs', selectedSource?.id],
     queryFn: async () => {
       if (!selectedSource) return [];
-      const { data } = await configApi.list(selectedSource.id);
-      return data.data ?? [];
+      try {
+        const { data } = await configApi.list(selectedSource.id);
+        return (data.data ?? []) as ConfigEntry[];
+      } catch (err) {
+        console.error('Config fetch error:', err);
+        const error = err as { response?: { status?: number } };
+        if (error.response?.status === 404 || error.response?.status === 500) {
+          return [];
+        }
+        throw err;
+      }
     },
     enabled: !!selectedSource,
+    staleTime: 10000,
+    retry: 2,
+    retryDelay: 1000,
   });
 
   // Fetch history
@@ -95,10 +117,22 @@ export default function Config() {
     queryKey: ['config-history', selectedSource?.id],
     queryFn: async () => {
       if (!selectedSource) return [];
-      const { data } = await configApi.history(selectedSource.id);
-      return data.data ?? [];
+      try {
+        const { data } = await configApi.history(selectedSource.id);
+        return (data.data ?? []) as ConfigHistory[];
+      } catch (err) {
+        console.error('History fetch error:', err);
+        const error = err as { response?: { status?: number } };
+        if (error.response?.status === 404 || error.response?.status === 500) {
+          return [];
+        }
+        throw err;
+      }
     },
     enabled: !!selectedSource && activeTab === 'history',
+    staleTime: 10000,
+    retry: 2,
+    retryDelay: 1000,
   });
 
   // Reveal secret mutation
@@ -327,9 +361,8 @@ export default function Config() {
               {/* Config Table */}
               <div className="bg-white/2 border border-white/5 rounded-xl overflow-hidden">
                 {isLoadingConfigs ? (
-                  <div className="flex items-center justify-center h-32 text-zinc-500 text-sm gap-2">
-                    <RefreshCw size={16} className="animate-spin" />
-                    Loading configurations...
+                  <div className="flex items-center justify-center h-32">
+                    <RefreshCw size={24} className="animate-spin text-zinc-500" />
                   </div>
                 ) : configs.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-32 text-center">
@@ -404,9 +437,8 @@ export default function Config() {
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
               <div className="bg-white/2 border border-white/5 rounded-xl overflow-hidden">
                 {isLoadingHistory ? (
-                  <div className="flex items-center justify-center h-32 text-zinc-500 text-sm gap-2">
-                    <RefreshCw size={16} className="animate-spin" />
-                    Loading history...
+                  <div className="flex items-center justify-center h-32">
+                    <RefreshCw size={24} className="animate-spin text-zinc-500" />
                   </div>
                 ) : historyError ? (
                   <div className="flex flex-col items-center justify-center h-32 text-center">

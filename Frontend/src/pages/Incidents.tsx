@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { AlertTriangle, CheckCircle, Clock, Calendar } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Clock, Calendar, RefreshCw } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { incidentsApi } from '../shared/lib/api';
 import SelectField from '../shared/components/SelectField';
@@ -118,11 +118,8 @@ export default function Incidents() {
           <tbody>
             {isLoading ? (
               <tr>
-                <td colSpan={4} className="px-4 py-8 text-center text-zinc-500">
-                  <div className="flex flex-col items-center gap-2">
-                    <div className="w-6 h-6 border-2 border-zinc-600 border-t-purple-500 rounded-full animate-spin" />
-                    <p>Loading incidents...</p>
-                  </div>
+                <td colSpan={4} className="px-4 py-8 text-center">
+                  <RefreshCw size={24} className="animate-spin text-zinc-500 mx-auto" />
                 </td>
               </tr>
             ) : error ? (

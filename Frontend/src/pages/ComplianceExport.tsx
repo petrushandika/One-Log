@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FileDown, Download, Clock, CheckCircle, AlertCircle } from 'lucide-react';
+import { FileDown, Download, Clock, CheckCircle, AlertCircle, RefreshCw } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { activityApi, sourcesApi } from '../shared/lib/api';
 import SelectField from '../shared/components/SelectField';
@@ -181,8 +181,8 @@ export default function ComplianceExport() {
             <tbody className="divide-y divide-white/5">
               {isLoading ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-zinc-400">
-                    Loading exports...
+                  <td colSpan={7} className="px-4 py-8 text-center">
+                    <RefreshCw size={24} className="animate-spin text-zinc-400 mx-auto" />
                   </td>
                 </tr>
               ) : exportList.length === 0 ? (

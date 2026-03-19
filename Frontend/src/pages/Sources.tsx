@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Server, Key, CheckCircle, XCircle, X, Copy, RefreshCw, Wifi, WifiOff, Eye, EyeOff, Settings, AlertCircle } from 'lucide-react';
+import { Server, Key, CheckCircle, XCircle, X, Copy, RefreshCw, Wifi, WifiOff, Eye, EyeOff, Settings, AlertCircle, Trash2 } from 'lucide-react';
 import { sourcesApi } from '../shared/lib/api';
 
 interface Source {
@@ -125,6 +125,20 @@ export default function Sources() {
     },
   });
 
+  // Delete source mutation
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await sourcesApi.delete(id);
+    },
+    onSuccess: () => {
+      showToast('Source deleted successfully');
+      queryClient.invalidateQueries({ queryKey: ['sources'] });
+    },
+    onError: () => {
+      showToast('Failed to delete source', 'error');
+    },
+  });
+
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newSource.name.trim()) return;
@@ -158,6 +172,12 @@ export default function Sources() {
 
   const handleRotateKey = async (id: string) => {
     rotateKeyMutation.mutate(id);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (window.confirm('Are you sure you want to delete this source? This action cannot be undone.')) {
+      deleteMutation.mutate(id);
+    }
   };
 
   const toggleKeyVisibility = (id: string) => {
@@ -342,18 +362,28 @@ export default function Sources() {
                     <Settings size={13} />
                     Settings
                   </button>
-                  <button
-                    onClick={() => handleToggleStatus(source)}
-                    disabled={toggleStatusMutation.isPending}
-                    className={`flex items-center gap-1.5 text-xs font-semibold transition-colors disabled:opacity-50 ${
-                      isOnline
-                        ? 'text-rose-400 hover:text-rose-300'
-                        : 'text-emerald-400 hover:text-emerald-300'
-                    }`}
-                  >
-                    {isOnline ? <WifiOff size={13} /> : <Wifi size={13} />}
-                    {toggleStatusMutation.isPending ? 'Updating...' : isOnline ? 'Disable' : 'Enable'}
-                  </button>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => handleDelete(source.id)}
+                      disabled={deleteMutation.isPending}
+                      className="flex items-center gap-1.5 text-xs font-semibold text-rose-400 hover:text-rose-300 transition-colors disabled:opacity-50"
+                    >
+                      <Trash2 size={13} />
+                      {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
+                    </button>
+                    <button
+                      onClick={() => handleToggleStatus(source)}
+                      disabled={toggleStatusMutation.isPending}
+                      className={`flex items-center gap-1.5 text-xs font-semibold transition-colors disabled:opacity-50 ${
+                        isOnline
+                          ? 'text-amber-400 hover:text-amber-300'
+                          : 'text-emerald-400 hover:text-emerald-300'
+                      }`}
+                    >
+                      {isOnline ? <WifiOff size={13} /> : <Wifi size={13} />}
+                      {toggleStatusMutation.isPending ? 'Updating...' : isOnline ? 'Disable' : 'Enable'}
+                    </button>
+                  </div>
                 </div>
               </motion.div>
             );
