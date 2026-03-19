@@ -101,12 +101,29 @@ func main() {
 	apmThresholdService := service.NewAPMThresholdService(apmThresholdRepo, logRepo)
 	apmThresholdHandler := handler.NewAPMThresholdHandler(apmThresholdService)
 
+	// Phase 4: Status Page
+	statusPageRepo := repository.NewStatusPageRepository(db)
+	statusPageService := service.NewStatusPageService(statusPageRepo)
+	statusPageHandler := handler.NewStatusPageHandler(statusPageService)
+
+	// Phase 7: Export Handler
+	exportHandler := handler.NewExportHandler(logRepo)
+
 	// 5. Start Background Workers
 	retentionWorker := worker.NewRetentionWorker(logRepo, 30) // 30 days retention
 	retentionWorker.Start()
 
 	uptimeWorker := worker.NewUptimeWorker(sourceRepo, incidentRepo, logService, notifySvc)
 	uptimeWorker.Start()
+
+	// Phase 5: Regression Detection Worker
+	regressionDetector := worker.NewRegressionDetector(logRepo, notifySvc)
+	regressionDetector.Start()
+
+	// Phase 5: Daily Digest Worker
+	aiClient := ai.NewGroqClient()
+	dailyDigestWorker := worker.NewDailyDigestWorker(logRepo, aiClient, notifySvc)
+	dailyDigestWorker.Start()
 
 	// 5. Setup Router (Gin Framework)
 	port := os.Getenv("SERVER_PORT")
@@ -126,6 +143,10 @@ func main() {
 	r.GET("/health", func(c *gin.Context) {
 		utils.Success(c, http.StatusOK, "System is healthy", gin.H{"app": "ULAM API"})
 	})
+
+	// Public Status Page routes (outside /api group)
+	r.GET("/status/:slug", statusPageHandler.PublicStatusPage)
+	r.GET("/embed/:token", statusPageHandler.EmbedWidget)
 
 	api := r.Group("/api")
 	{
@@ -209,6 +230,19 @@ func main() {
 			// Phase 4: Incident Management
 			admin.GET("/incidents", incidentHandler.List)
 			admin.GET("/incidents/timeline", incidentHandler.GetTimeline)
+
+			// Phase 4: Status Page Admin
+			admin.GET("/admin/status-pages", statusPageHandler.List)
+			admin.POST("/admin/status-pages", statusPageHandler.Create)
+			admin.GET("/admin/status-pages/:source_id", statusPageHandler.Get)
+			admin.PATCH("/admin/status-pages/:source_id", statusPageHandler.Update)
+			admin.DELETE("/admin/status-pages/:source_id", statusPageHandler.Delete)
+			admin.GET("/admin/status-pages/:source_id/uptime", statusPageHandler.GetUptime)
+			admin.POST("/admin/status-pages/:source_id/embed", statusPageHandler.CreateEmbed)
+
+			// Phase 7: Export
+			admin.GET("/logs/export/excel", exportHandler.ExportLogsExcel)
+			admin.GET("/logs/export/pdf", exportHandler.ExportAuditPDF)
 
 			// Configs
 			admin.POST("/sources/:id/configs", configHandler.Save)
