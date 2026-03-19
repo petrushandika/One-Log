@@ -118,3 +118,20 @@ func (h *SourceHandler) RotateKey(c *gin.Context) {
 		"new_api_key": rawAPIKey, // Only shown once!
 	})
 }
+
+func (h *SourceHandler) Delete(c *gin.Context) {
+	id := c.Param("id")
+	userID := c.GetUint("user_id")
+
+	err := h.service.DeleteSource(id, userID)
+	if err != nil {
+		if err.Error() == "source not found" {
+			utils.Error(c, http.StatusNotFound, "Source not found", nil)
+			return
+		}
+		utils.Error(c, http.StatusInternalServerError, "Failed to delete source", err.Error())
+		return
+	}
+
+	utils.Success(c, http.StatusOK, "Source deleted successfully", nil)
+}

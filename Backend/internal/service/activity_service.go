@@ -118,6 +118,8 @@ func (s *activityService) Suspicious(limitStr, pageStr, period, sourceID string,
 
 func parsePeriod(p string) (time.Duration, error) {
 	switch p {
+	case "1h":
+		return 1 * time.Hour, nil
 	case "24h":
 		return 24 * time.Hour, nil
 	case "7d":

@@ -59,6 +59,7 @@ export const sourcesApi = {
   create: (data: { name: string; health_url?: string }) => api.post('/sources', data),
   update: (id: string, data: { name?: string; health_url?: string; status?: string }) =>
     api.patch(`/sources/${id}`, data),
+  delete: (id: string) => api.delete(`/sources/${id}`),
   rotateKey: (id: string) => api.post(`/sources/${id}/rotate-key`),
 };
 

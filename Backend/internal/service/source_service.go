@@ -16,6 +16,7 @@ type SourceService interface {
 	GetSourceByID(id string, userID uint) (*domain.Source, error)
 	RotateAPIKey(id string, userID uint) (string, error)
 	UpdateSource(id string, userID uint, req domain.UpdateSourceRequest) (*domain.Source, error)
+	DeleteSource(id string, userID uint) error
 }
 
 type sourceService struct {
@@ -113,4 +114,16 @@ func (s *sourceService) UpdateSource(id string, userID uint, req domain.UpdateSo
 		return nil, err
 	}
 	return source, nil
+}
+
+func (s *sourceService) DeleteSource(id string, userID uint) error {
+	// Check if source exists first
+	source, err := s.repo.FindByID(id, userID)
+	if err != nil {
+		return err
+	}
+	if source == nil {
+		return errors.New("source not found")
+	}
+	return s.repo.Delete(id, userID)
 }

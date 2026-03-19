@@ -3,11 +3,13 @@ package domain
 import "time"
 
 // ErrorEmbedding stores vector embeddings for error messages
+// Note: This table requires pgvector extension
+// If pgvector is not available, this table will not be created
 type ErrorEmbedding struct {
 	ID          uint      `json:"id" gorm:"primaryKey"`
 	LogID       uint      `json:"log_id" gorm:"uniqueIndex"`
 	Fingerprint string    `json:"fingerprint" gorm:"index"`
-	Embedding   []float32 `json:"embedding" gorm:"type:vector(384)"` // 384-dim vector
+	Embedding   []float32 `json:"embedding" gorm:"type:float[]"` // Fallback to float array if vector not available
 	MessageHash string    `json:"message_hash" gorm:"index"`
 	CreatedAt   time.Time `json:"created_at"`
 }

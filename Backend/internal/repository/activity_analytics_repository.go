@@ -142,6 +142,14 @@ AND created_at >= NOW() - INTERVAL '1 day' * ?
 }
 
 func (r *activityAnalyticsRepository) GetRecentSessions(limit int, offset int, sourceID string) ([]map[string]interface{}, int64, error) {
+	// Check if sessions table exists
+	var tableExists bool
+	err := r.db.Raw("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'sessions')").Scan(&tableExists).Error
+	if err != nil || !tableExists {
+		// Return empty result if table doesn't exist
+		return []map[string]interface{}{}, 0, nil
+	}
+
 	sql := `
 SELECT 
     id,

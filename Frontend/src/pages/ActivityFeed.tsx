@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Users, Activity, FileText, Download, Filter } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Users, Activity, FileText, Download, Filter, RefreshCw, AlertCircle } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { activityApi } from '../shared/lib/api';
 import SelectField from '../shared/components/SelectField';
@@ -21,9 +22,20 @@ export default function ActivityFeed() {
   const [limit, setLimit] = useState(20);
   const [action, setAction] = useState('');
 
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['activity-feed', page, limit, action],
-    queryFn: () => activityApi.getFeed({ page, limit, action }),
+    queryFn: async () => {
+      try {
+        const response = await activityApi.getFeed({ page, limit, action });
+        return response;
+      } catch (err: Error | unknown) {
+        console.error('Activity Feed API Error:', err);
+        throw err;
+      }
+    },
+    retry: 3,
+    retryDelay: 1000,
+    staleTime: 30000,
   });
 
   const feedItems: ActivityFeedItem[] = data?.data?.items || [];
@@ -95,6 +107,28 @@ export default function ActivityFeed() {
         </div>
       </div>
 
+      {/* Error Message */}
+      {error && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 flex items-center gap-3"
+        >
+          <AlertCircle size={20} />
+          <div className="flex-1">
+            <p className="font-medium">Failed to load activities</p>
+            <p className="text-sm text-red-300/70">Check your connection and try again</p>
+          </div>
+          <button
+            onClick={() => refetch()}
+            className="px-3 py-1.5 text-sm bg-red-500/20 hover:bg-red-500/30 rounded-lg transition-colors flex items-center gap-1"
+          >
+            <RefreshCw size={14} />
+            Retry
+          </button>
+        </motion.div>
+      )}
+
       {/* Activity Feed Table */}
       <div className="bg-white/2 border border-white/5 rounded-xl overflow-hidden">
         <div className="overflow-x-auto">
@@ -112,8 +146,8 @@ export default function ActivityFeed() {
             <tbody className="divide-y divide-white/5">
               {isLoading ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-zinc-400">
-                    Loading activities...
+                  <td colSpan={6} className="px-4 py-8 text-center">
+                    <RefreshCw size={24} className="animate-spin text-zinc-400 mx-auto" />
                   </td>
                 </tr>
               ) : error ? (
