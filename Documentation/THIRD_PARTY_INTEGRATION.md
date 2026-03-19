@@ -101,6 +101,350 @@
 
 ---
 
+## 🕵️ User Identification & Tracking Capabilities
+
+### Identifikasi User di Berbagai Platform
+
+ULAM dapat mengidentifikasi dan melacak user di SEMUA aplikasi yang ter-integrasi dengan detail sebagai berikut:
+
+#### **1. User Identifier yang Di-capture:**
+
+| Platform | User ID | Email | Username | Device Info | IP Address |
+|----------|---------|-------|----------|-------------|------------|
+| **Google Workspace** | ✅ `user@company.com` | ✅ Primary email | ✅ Username | ✅ Device ID, OS | ✅ Full IP + Geolocation |
+| **GitHub** | ✅ `username` | ✅ Primary email | ✅ `@username` | ✅ SSH Key fingerprint | ✅ Full IP |
+| **Instagram** | ✅ Account ID | ✅ Email terdaftar | ✅ `@username` | ✅ Device name | ✅ IP (partial) |
+| **Twitter/X** | ✅ User ID | ✅ Email | ✅ `@handle` | ✅ Device info | ✅ IP (partial) |
+| **Slack** | ✅ Member ID | ✅ Email | ✅ `@username` | ✅ Device/OS | ✅ Full IP |
+| **Notion** | ✅ User ID | ✅ Email | ✅ Name | ✅ Browser/Device | ✅ IP |
+
+**💡 Kunci Sukses Identifikasi:**
+- Email adalah **primary identifier** yang konsisten cross-platform
+- IP Address membantu **correlate activities** dari user yang sama
+- Device fingerprint untuk **detect account sharing**
+- Timestamp untuk **timeline reconstruction**
+
+#### **2. Cross-Platform User Mapping:**
+
+```json
+{
+  "user_profile": {
+    "unified_id": "user_001",
+    "primary_email": "john.doe@company.com",
+    "aliases": [
+      "john.doe@gmail.com",
+      "johndoe@personal.com"
+    ],
+    "platform_accounts": {
+      "google_workspace": "john.doe@company.com",
+      "github": "johndoe-dev",
+      "instagram": "@john_doe_official",
+      "twitter": "@john_doe",
+      "slack": "john.doe"
+    },
+    "devices": [
+      {
+        "device_id": "chrome_abc123",
+        "type": "Desktop",
+        "os": "macOS 14.0",
+        "browser": "Chrome 120.0"
+      },
+      {
+        "device_id": "iphone_xyz789",
+        "type": "Mobile",
+        "os": "iOS 17.1",
+        "app": "Instagram v312.0"
+      }
+    ]
+  }
+}
+```
+
+---
+
+## 🚨 Kemampuan Deteksi Aktivitas Sensitif & Kriminal
+
+### ⚠️ APA yang Bisa Dideteksi (dengan BUKTI AUDIT)
+
+ULAM bisa mendeteksi pola dan aktivitas yang **MENCURIGAKAN** dan **TIDAK WAJAR**, tapi perlu dipahami:
+
+#### **✅ BISA Dideteksi (Metadata & Events):**
+
+**A. Aktivitas Posting/Publishing:**
+- ✅ **SIAPA** yang post (user ID, email)
+- ✅ **KAPAN** post (timestamp exact)
+- ✅ **DARI MANA** post (IP address, lokasi)
+- ✅ **DARI DEVICE APA** (browser, OS, device fingerprint)
+- ✅ **FREQUENCY** post (berapa kali sehari)
+- ✅ **PATTERN** post (jam berapa biasanya)
+- ❌ **ISI** post (hanya hash/content ID, bukan full text*)
+
+*Kecuali platform mengirimkan content dalam webhook/API
+
+**Contoh Deteksi:**
+```
+🚨 SUSPICIOUS POSTING ACTIVITY
+
+User: john.doe@company.com
+Platform: Instagram Business (@company_official)
+Pattern Detected: Unusual posting behavior
+
+Timeline Analysis:
+├─ Normal Pattern: 1-2 post/hari, jam 09:00-17:00 WIB
+├─ Anomaly Detected: 50 post dalam 2 jam (22:00-00:00)
+└─ Content Type: Mostly cryptocurrency promotion
+
+Device Analysis:
+├─ Device: Android Phone (tidak pernah digunakan sebelumnya)
+├─ Location: Nigeria (user biasanya di Jakarta)
+└─ Browser: Chrome Mobile (user biasanya pakai iPhone)
+
+🔴 CONCLUSION: 98% probability account compromised
+Action: Posting privilege suspended, 2FA required
+```
+
+**B. Aktivitas Financial/Transaksi:**
+
+ULAM **BISA** deteksi jika aplikasi mengirim webhook events:
+
+**Contoh - E-commerce Platform Integration:**
+```json
+{
+  "category": "FINANCIAL_TRANSACTION",
+  "level": "CRITICAL",
+  "message": "Large withdrawal detected",
+  "context": {
+    "platform": "internal_payment_gateway",
+    "user_id": "john.doe@company.com",
+    "transaction_id": "TXN-2026-001",
+    "type": "WITHDRAWAL",
+    "amount": 50000000,
+    "currency": "IDR",
+    "timestamp": "2026-03-19T02:30:00Z",
+    "ip_address": "185.220.101.45",
+    "location": "Russia (via Tor)",
+    "device": "Unknown Device",
+    "is_anomalous": true,
+    "reason": "Amount exceeds user limit by 10x"
+  }
+}
+```
+
+**Tapi perlu dipahami:**
+- ✅ ULAM bisa deteksi **REQUEST** withdrawal dilakukan
+- ✅ Siapa yang request (user ID)
+- ✅ Kapan dan dari mana
+- ❌ ULAM **TIDAK** bisa baca saldo rekening (terkecuali di-share via API)
+- ❌ ULAM **TIDAK** bisa baca detail transaksi bank
+
+**C. Aktivitas File/Asset:**
+
+**Contoh - Data Exfiltration Pattern:**
+```
+🚨 POTENTIAL DATA THEFT
+
+User: employee.resign@company.com
+Department: Finance
+Resignation Date: 2026-03-31
+
+Activity Pattern (7 days before resign):
+
+Google Drive:
+├─ Downloaded: Financial_Statements_2026.xlsx (Confidential)
+├─ Downloaded: Client_Database.xlsx (5000 records)
+├─ Downloaded: Salary_Structure.pdf (Confidential)
+└─ Total: 45 files, 230 MB
+
+GitHub:
+├─ Cloned: company/payment-gateway (Private repo)
+├─ Cloned: company/customer-api (Private repo)
+└─ Total: 8 repositories
+
+Slack:
+├─ Exported: #finance channel history
+├─ Exported: #executive channel history
+└─ Total: 15 channels
+
+Time Pattern:
+├─ 85% aktivitas dilakukan jam 20:00-02:00
+├─ 60% hari Sabtu/Minggu
+└─ 100% dilakukan dari device pribadi
+
+🔴 RISK ASSESSMENT: CRITICAL
+Confidence: 92% insider threat
+Recommendation: Immediate access revocation
+```
+
+#### **❌ TIDAK BISA Dideteksi (Privacy & Legal Limits):**
+
+**1. Content Private Messages (DMs/Chat):**
+- ❌ **ISI** pesan WhatsApp, DM Instagram, Slack DM
+- ❌ **ATTACHMENT** yang dikirim via DM
+- ✅ Hanya bisa: Metadata (siapa chat dengan siapa, kapan, frekuensi)
+
+**2. Bank/Financial Account Details:**
+- ❌ **SALDO** rekening bank user
+- ❌ **MUTASI** transaksi bank
+- ❌ **KARTU KREDIT** details
+- ✅ Hanya bisa: Jika aplikasi internal Anda log transaksi
+
+**3. Personal Content:**
+- ❌ **FOTO/VIDEO** pribadi di cloud storage
+- ❌ **EMAIL CONTENT** (Gmail, Outlook)
+- ❌ **BROWSING HISTORY**
+- ❌ **LOCATION REAL-TIME** (hanya saat login)
+
+**4. Kejahatan Cyber Lanjutan:**
+- ❌ **HACKING ACTIVITIES** (kecuali aplikasi Anda yang di-hack)
+- ❌ **DARK WEB** activities
+- ❌ **ENCRYPTED COMMUNICATIONS** (Signal, Telegram secret chat)
+
+---
+
+### 🎯 Pola "Kriminal" yang Bisa Dideteksi
+
+#### **1. Account Takeover (ATO):**
+```
+🚨 ACCOUNT TAKEOVER DETECTED
+
+User: admin@company.com
+Platform: Google Workspace
+
+Indicators:
+├─ Login dari IP TOR exit node: 185.220.101.x
+├─ Login dari lokasi: Russia (user biasanya di Jakarta)
+├─ Device: Windows Firefox (user biasanya Mac Chrome)
+├─ Timestamp: 03:15 AM (anomalous hours)
+├─ Actions setelah login:
+│   ├─ 03:16 AM - Changed recovery email
+│   ├─ 03:17 AM - Disabled 2FA
+│   ├─ 03:18 AM - Downloaded all Drive files
+│   └─ 03:20 AM - Forwarded all emails ke external address
+└─ Session duration: 5 menit (sangat cepat & targeted)
+
+🔴 CONFIDENCE: 99% account compromised
+Action: Account locked, password reset required
+```
+
+#### **2. Insider Threat - Data Exfiltration:**
+```
+🚨 DATA EXFILTRATION PATTERN
+
+User: john.doe@company.com
+Role: Senior Developer
+Notice Period: 30 days (resigning)
+
+Anomalous Activities:
+
+Week 1 (Normal):
+├─ Average: 5 file download/day
+└─ Pattern: Jam kerja normal
+
+Week 2 (Suspicious):
+├─ Average: 25 file download/day
+├─ Pattern: Jam 20:00-23:00
+└─ Files: Mostly "Confidential" & "Secret"
+
+Week 3 (Critical):
+├─ Average: 80 file download/day
+├─ Pattern: 22:00-02:00 + Weekend
+├─ Files:
+│   ├─ Source code repositories
+│   ├─ Customer database
+│   ├─ Architecture diagrams
+│   └─ API keys & credentials
+└─ Device: Personal laptop (tidak pernah digunakan sebelumnya)
+
+Total Data: 12 GB dalam 3 minggu (vs normal 500 MB/bulan)
+
+🔴 INSIDER THREAT DETECTED
+Confidence: 95%
+Recommendation: Data Loss Prevention (DLP) triggered
+```
+
+#### **3. Social Media Takeover & Abuse:**
+```
+🚨 SOCIAL MEDIA ACCOUNT ABUSE
+
+Account: @company_official (500K followers)
+Platform: Instagram Business
+
+Normal Pattern:
+├─ 1-2 post/hari
+├─ Content: Product updates, tips, engagement
+├─ Device: iPhone 14 Pro (Social Media Manager)
+└─ Location: Jakarta Office
+
+ANOMALY DETECTED:
+
+Timeline:
+├─ 02:30 AM - Login dari device baru: Android (Jakarta)
+├─ 02:32 AM - Login dari device baru: Android (Nigeria)
+├─ 02:35 AM - Email changed to: recovery.suspicious@protonmail.com
+├─ 02:37 AM - 2FA disabled
+├─ 02:40 AM - Posted: "🚀 Investasi Crypto Return 500%!"
+├─ 02:42 AM - Posted: "🔗 Link in bio for quick rich!"
+├─ 02:45 AM - DM sent ke 1000 followers: Phishing link
+└─ 02:50 AM - Account locked by Instagram (reported by users)
+
+Impact:
+├─ Follower loss: 12,000 (-2.4%)
+├─ Reported as spam: 450 users
+├─ Brand reputation damage: HIGH
+└─ Potential legal liability: Phishing content
+
+🔴 ACCOUNT COMPROMISE CONFIRMED
+Response Time: 15 minutes (detected by ULAM)
+Recovery Time: 48 hours
+```
+
+---
+
+### ⚖️ Legal & Ethical Boundaries
+
+#### **✅ WAJAR & LEGAL untuk Track:**
+- ✅ Company-owned accounts (Google Workspace, GitHub Enterprise)
+- ✅ Company devices yang digunakan karyawan
+- ✅ Work-related activities selama jam kerja
+- ✅ Security events (login, permission changes)
+- ✅ Compliance requirements (SOC2, ISO 27001, GDPR)
+
+#### **❌ TIDAK WAJAR & POTENSI ILEGAL:**
+- ❌ Personal accounts karyawan (Instagram pribadi, Gmail pribadi)
+- ❌ Private messages (DMs, chat pribadi)
+- ❌ Personal devices tanpa consent
+- ❌ Activities di luar jam kerja (kecuali menggunakan company asset)
+- ❌ Content yang dianggap private (foto, video, dokumen pribadi)
+
+#### **📝 Requirements untuk Implementasi:**
+
+**1. Employee Consent:**
+```
+EMPLOYEE MONITORING POLICY
+
+Dengan ini saya menyetujui:
+✅ Monitoring aktivitas di company-owned devices dan accounts
+✅ Logging access ke company data dan aplikasi
+✅ Audit trail untuk compliance dan security
+✅ Pengecualian: Personal accounts dan private communications
+
+Signed: _____________
+Date: _____________
+```
+
+**2. GDPR Compliance (untuk EU):**
+- Inform user tentang data yang di-collect
+- Provide right to access their data
+- Provide right to deletion (dengan exception untuk audit trail)
+- Data minimization principle
+
+**3. Transparency:**
+- Display monitoring notice saat login
+- Clear privacy policy
+- Regular audit & reporting
+
+---
+
 ## 📊 Data yang Bisa Di-Track
 
 ### 1. Authentication Events
