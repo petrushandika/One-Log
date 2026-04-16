@@ -51,4 +51,3 @@ func Seed(db *gorm.DB) {
 
 	log.Println("Database seeding completed.")
 }
-

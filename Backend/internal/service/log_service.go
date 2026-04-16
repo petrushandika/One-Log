@@ -140,4 +140,3 @@ func (s *logService) ExportLogs(sourceID string, level string, category string, 
 	logs, _, err := s.repo.FindAll(10000, 0, sourceID, level, category, userID, from, to)
 	return logs, err
 }
-
