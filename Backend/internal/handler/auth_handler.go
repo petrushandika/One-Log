@@ -2,26 +2,22 @@ package handler
 
 import (
 	"net/http"
-	"os"
-	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/petrushandika/one-log/internal/domain"
 	"github.com/petrushandika/one-log/internal/service"
 	"github.com/petrushandika/one-log/pkg/utils"
-	"golang.org/x/crypto/bcrypt"
-	"gorm.io/gorm"
 )
 
-// AuthHandler handles the admin login process.
+// AuthHandler handles the admin authentication endpoints.
+// Business logic (credential validation, JWT signing) lives in AuthService.
 type AuthHandler struct {
-	db     *gorm.DB
-	logSvc service.LogService
+	authSvc service.AuthService
+	logSvc  service.LogService
 }
 
-func NewAuthHandler(db *gorm.DB, logSvc service.LogService) *AuthHandler {
-	return &AuthHandler{db: db, logSvc: logSvc}
+func NewAuthHandler(authSvc service.AuthService, logSvc service.LogService) *AuthHandler {
+	return &AuthHandler{authSvc: authSvc, logSvc: logSvc}
 }
 
 func (h *AuthHandler) Login(c *gin.Context) {
@@ -33,44 +29,10 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	var user domain.User
-	if err := h.db.Where("email = ?", req.Email).First(&user).Error; err != nil {
+	user, accessToken, refreshToken, err := h.authSvc.Login(req.Email, req.Password)
+	if err != nil {
 		h.logFailedAttempt(c, req.Email)
 		utils.Error(c, http.StatusUnauthorized, "Invalid credentials", nil)
-		return
-	}
-
-	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
-		h.logFailedAttempt(c, req.Email)
-		utils.Error(c, http.StatusUnauthorized, "Invalid credentials", nil)
-		return
-	}
-
-	// Create token (Valid for 24 hours)
-	secret := []byte(os.Getenv("JWT_SECRET"))
-
-	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"user_id": user.ID,
-		"email":   req.Email,
-		"exp":     time.Now().Add(time.Hour * 24).Unix(),
-	})
-
-	accessTokenString, err := accessToken.SignedString(secret)
-	if err != nil {
-		utils.Error(c, http.StatusInternalServerError, "Failed to generate token", err.Error())
-		return
-	}
-
-	// Refresh token (Valid for 7 days)
-	refreshToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"user_id": user.ID,
-		"email":   req.Email,
-		"typ":     "refresh",
-		"exp":     time.Now().Add(time.Hour * 24 * 7).Unix(),
-	})
-	refreshTokenString, err := refreshToken.SignedString(secret)
-	if err != nil {
-		utils.Error(c, http.StatusInternalServerError, "Failed to generate refresh token", err.Error())
 		return
 	}
 
@@ -83,16 +45,16 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		Context:   map[string]interface{}{"email": req.Email},
 	}, "00000000-0000-0000-0000-000000000001")
 
-	// Set documented httpOnly cookies (hybrid: keep legacy cookie for compatibility).
+	// Set httpOnly cookies.
 	// NOTE: secure flag should be true in production behind HTTPS.
-	c.SetCookie("ulam_access", accessTokenString, 3600*24, "/", "", false, true)
-	c.SetCookie("ulam_refresh", refreshTokenString, 3600*24*7, "/api/auth/refresh", "", false, true)
-	c.SetCookie("token", accessTokenString, 3600*24, "/", "", false, true) // legacy
+	c.SetCookie("ulam_access", accessToken, 3600*24, "/", "", false, true)
+	c.SetCookie("ulam_refresh", refreshToken, 3600*24*7, "/api/auth/refresh", "", false, true)
+	c.SetCookie("token", accessToken, 3600*24, "/", "", false, true) // legacy
 
 	utils.Success(c, http.StatusOK, "Login successful", gin.H{
-		// Keep returning token for current frontend compatibility (will be removed once frontend switches to cookies).
-		"token": accessTokenString,
-		"email": req.Email,
+		// Keep returning token for current frontend compatibility (will be removed once frontend switches fully to cookies).
+		"token": accessToken,
+		"email": user.Email,
 	})
 }
 
@@ -103,48 +65,20 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 		return
 	}
 
-	secret := []byte(os.Getenv("JWT_SECRET"))
-	token, err := jwt.Parse(refreshTokenString, func(t *jwt.Token) (interface{}, error) {
-		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, jwt.ErrTokenSignatureInvalid
-		}
-		return secret, nil
-	})
-	if err != nil || !token.Valid {
+	newAccessToken, err := h.authSvc.RefreshAccessToken(refreshTokenString)
+	if err != nil {
 		utils.Error(c, http.StatusUnauthorized, "Invalid or expired refresh token", nil)
 		return
 	}
 
-	claims, ok := token.Claims.(jwt.MapClaims)
-	if !ok || claims["user_id"] == nil || claims["email"] == nil {
-		utils.Error(c, http.StatusUnauthorized, "Invalid refresh token claims", nil)
-		return
-	}
-	if typ, _ := claims["typ"].(string); typ != "refresh" {
-		utils.Error(c, http.StatusUnauthorized, "Invalid refresh token type", nil)
-		return
-	}
-
-	// Re-issue access token (24h)
-	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"user_id": claims["user_id"],
-		"email":   claims["email"],
-		"exp":     time.Now().Add(time.Hour * 24).Unix(),
-	})
-	accessTokenString, err := accessToken.SignedString(secret)
-	if err != nil {
-		utils.Error(c, http.StatusInternalServerError, "Failed to generate token", err.Error())
-		return
-	}
-
-	c.SetCookie("ulam_access", accessTokenString, 3600*24, "/", "", false, true)
-	c.SetCookie("token", accessTokenString, 3600*24, "/", "", false, true) // legacy
+	c.SetCookie("ulam_access", newAccessToken, 3600*24, "/", "", false, true)
+	c.SetCookie("token", newAccessToken, 3600*24, "/", "", false, true) // legacy
 
 	utils.Success(c, http.StatusOK, "Token refreshed", nil)
 }
 
 func (h *AuthHandler) Logout(c *gin.Context) {
-	// Clear cookies by setting MaxAge<0
+	// Clear all auth cookies
 	c.SetCookie("ulam_access", "", -1, "/", "", false, true)
 	c.SetCookie("ulam_refresh", "", -1, "/api/auth/refresh", "", false, true)
 	c.SetCookie("token", "", -1, "/", "", false, true) // legacy

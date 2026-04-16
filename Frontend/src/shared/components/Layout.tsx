@@ -5,15 +5,21 @@ import { LayoutGrid, FileText, ShieldAlert, LogOut, Terminal, Menu, X, BugPlay, 
 import ChatWidget from './ChatWidget';
 import { NotificationProvider } from '../contexts/NotificationContext';
 import NotificationDropdown from './NotificationDropdown';
+import { authApi } from '../lib/api';
 
 export default function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  const handleLogout = () => {
-     localStorage.removeItem('token');
-     navigate('/login');
+  const handleLogout = async () => {
+    try {
+      await authApi.logout(); // clears httpOnly cookies server-side
+    } catch {
+      // Ignore API errors — still proceed to redirect
+    }
+    localStorage.removeItem('token'); // clear legacy token
+    navigate('/login');
   };
 
   const menuSections = [

@@ -49,7 +49,7 @@
 
 ### `POST /api/auth/login`
 
-Login admin. Response **tidak mengembalikan token di body** — token langsung di-set sebagai httpOnly cookie.
+Login admin. Response mengembalikan token di body dan juga men-set token sebagai httpOnly cookie.
 
 **Auth**: Public
 
@@ -57,7 +57,7 @@ Login admin. Response **tidak mengembalikan token di body** — token langsung d
 
 ```json
 {
-  "username": "admin",
+  "email": "admin@onelog.com",
   "password": "your_secure_password"
 }
 ```
@@ -66,10 +66,12 @@ Login admin. Response **tidak mengembalikan token di body** — token langsung d
 
 ```json
 {
+  "status": "success",
+  "code": 200,
   "message": "Login successful",
-  "admin": {
-    "id": 1,
-    "username": "admin"
+  "data": {
+    "token": "eyJhbGci...",
+    "email": "admin@onelog.com"
   }
 }
 ```

@@ -54,6 +54,7 @@ func main() {
 
 	// 4. Dependency Injection (Wire all layers)
 	logRepo := repository.NewLogRepository(db)
+	userRepo := repository.NewUserRepository(db)
 
 	notifySvc := service.NewNotificationService()
 	aiSvc := service.NewAIService(logRepo)
@@ -71,7 +72,8 @@ func main() {
 	sourceService := service.NewSourceService(sourceRepo)
 	sourceHandler := handler.NewSourceHandler(sourceService)
 
-	authHandler := handler.NewAuthHandler(db, logService)
+	authService := service.NewAuthService(userRepo)
+	authHandler := handler.NewAuthHandler(authService, logService)
 	statusHandler := handler.NewStatusHandler(sourceRepo)
 
 	configRepo := repository.NewConfigRepository(db)

@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"log"
 	"os"
 
 	"github.com/gin-gonic/gin"
@@ -9,7 +10,10 @@ import (
 func CORSMiddleware() gin.HandlerFunc {
 	allowedOrigin := os.Getenv("CORS_ALLOWED_ORIGIN")
 	if allowedOrigin == "" {
-		allowedOrigin = "*" // Fallback for local dev
+		// Wildcard '*' is incompatible with withCredentials: true.
+		// Default to localhost dev origin to prevent silent breakage.
+		allowedOrigin = "http://localhost:5173"
+		log.Println("WARNING: CORS_ALLOWED_ORIGIN not set, defaulting to http://localhost:5173")
 	}
 
 	return func(c *gin.Context) {
@@ -26,3 +30,4 @@ func CORSMiddleware() gin.HandlerFunc {
 		c.Next()
 	}
 }
+

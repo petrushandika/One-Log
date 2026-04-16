@@ -136,6 +136,8 @@ func (s *logService) GetActivitySummary(userID uint) (map[string]interface{}, er
 }
 
 func (s *logService) ExportLogs(sourceID string, level string, category string, userID uint, from, to *time.Time) ([]domain.LogEntry, error) {
-	logs, _, err := s.repo.FindAll(100000, 0, sourceID, level, category, userID, from, to)
+	// Capped at 10,000 rows to prevent OOM. For larger exports use the Excel/PDF handler.
+	logs, _, err := s.repo.FindAll(10000, 0, sourceID, level, category, userID, from, to)
 	return logs, err
 }
+
