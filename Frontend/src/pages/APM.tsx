@@ -221,7 +221,7 @@ export default function APM() {
                     borderRadius: '8px',
                   }}
                   formatter={(value) => [`${Math.round(Number(value))} ms`, '']}
-                  labelFormatter={(label) => new Date(label).toLocaleString()}
+                  labelFormatter={(label) => new Date(label as string | number).toLocaleTimeString()}
                 />
                 <Legend />
                 <Line type="monotone" dataKey="p50" name="P50" stroke="#10b981" strokeWidth={2} dot={false} />
